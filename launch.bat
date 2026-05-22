@@ -1,0 +1,3 @@
+@echo off
+echo  Launching FaceTrack Pro...
+npx electron .

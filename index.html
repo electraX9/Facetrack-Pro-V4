@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FaceTrack Pro v4.0</title>
+<!-- ALL LOCAL — no internet required after setup.bat -->
+<script>
+(function(){
+  var s=document.createElement("script");
+  s.src="./node_modules/face-api.js/dist/face-api.min.js";
+  s.onerror=function(){
+    var s2=document.createElement("script");
+    s2.src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js";
+    document.head.appendChild(s2);
+  };
+  document.head.appendChild(s);
+})();
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#060610;--s1:#0b0b1d;
+  --blue:#0a84ff;--teal:#5ac8fa;--purple:#bf5af2;
+  --green:#30d158;--orange:#ff9f0a;--red:#ff453a;
+  --text:rgba(255,255,255,.92);--t2:rgba(255,255,255,.52);--t3:rgba(255,255,255,.24);
+  --gl:rgba(255,255,255,.04);--gl2:rgba(255,255,255,.09);
+  --bo:rgba(255,255,255,.07);--bo2:rgba(255,255,255,.15);
+  --blur:blur(40px) saturate(200%);
+  --font:"Inter",system-ui,sans-serif;--mono:"JetBrains Mono",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);overflow:hidden}
+#app{display:flex;flex-direction:column;height:100vh}
+
+/* TOP BAR */
+#topbar{height:50px;display:flex;align-items:center;gap:9px;padding:0 14px;flex-shrink:0;
+  background:rgba(6,6,16,.96);border-bottom:1px solid var(--bo);z-index:10;
+  backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur)}
+.logo-box{width:28px;height:28px;border-radius:8px;
+  background:linear-gradient(135deg,var(--blue),var(--purple));
+  display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.logo-name{font-size:14px;font-weight:700;letter-spacing:-.02em}
+.logo-name b{background:linear-gradient(90deg,var(--blue),var(--purple));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logo-ver{font-size:10px;color:var(--t3);font-family:var(--mono);margin-left:2px}
+.sep{width:1px;height:18px;background:var(--bo);flex-shrink:0}
+.st{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--t2)}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:background .3s}
+.dot.live{background:var(--green);box-shadow:0 0 0 3px rgba(48,209,88,.2);animation:p 2s infinite}
+.dot.off{background:var(--t3)}.dot.err{background:var(--red)}
+@keyframes p{0%,100%{box-shadow:0 0 0 3px rgba(48,209,88,.2)}50%{box-shadow:0 0 0 6px rgba(48,209,88,.06)}}
+.pills{display:flex;gap:5px;margin-left:auto}
+.pill{display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;
+  font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--bo);
+  background:var(--gl);color:var(--t2);transition:all .2s;user-select:none}
+.pill:hover{background:var(--gl2);color:var(--text);border-color:var(--bo2)}
+.pill.g{background:rgba(48,209,88,.1);border-color:rgba(48,209,88,.28);color:var(--green)}
+.pill.b{background:rgba(10,132,255,.1);border-color:rgba(10,132,255,.28);color:var(--blue)}
+.pill.v{background:rgba(191,90,242,.1);border-color:rgba(191,90,242,.28);color:var(--purple)}
+.pill.o{background:rgba(255,159,10,.1);border-color:rgba(255,159,10,.28);color:var(--orange)}
+.pdot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.tbtn{padding:5px 11px;border-radius:7px;font-size:11px;font-weight:500;cursor:pointer;
+  border:1px solid var(--bo);background:var(--gl);color:var(--t2);transition:all .2s;white-space:nowrap}
+.tbtn:hover{background:var(--gl2);color:var(--text);border-color:var(--bo2)}
+.tbtn.calib-btn{border-color:rgba(255,159,10,.3);color:var(--orange);background:rgba(255,159,10,.08)}
+.tbtn.calib-btn:hover{background:rgba(255,159,10,.18)}
+.tbtn.topmost-btn{border-color:rgba(10,132,255,.3);color:var(--blue);background:rgba(10,132,255,.08)}
+.tbtn.topmost-btn.on{background:rgba(10,132,255,.18);border-color:var(--blue)}
+
+/* MAIN */
+#main{display:flex;flex:1;overflow:hidden}
+#sidebar{width:232px;flex-shrink:0;display:flex;flex-direction:column;
+  background:rgba(6,6,16,.9);border-right:1px solid var(--bo);
+  transition:width .3s cubic-bezier(.4,0,.2,1);overflow:hidden;
+  backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur)}
+#sidebar.off{width:0;border:none}
+.ss{padding:9px;border-bottom:1px solid rgba(255,255,255,.04)}
+.sh{font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--t3);margin-bottom:7px;padding:0 2px}
+.card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.055);
+  border-radius:7px;padding:8px 10px;margin-bottom:4px}
+.card:last-child{margin-bottom:0}
+.cl{font-size:9px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--t3);margin-bottom:2px}
+.cv{font-size:12px;font-weight:500;font-family:var(--mono)}
+.row{display:flex;gap:4px}.row .card{flex:1;margin-bottom:0}
+.emo-bars{display:flex;flex-direction:column;gap:3px;margin-top:3px}
+.er{display:flex;align-items:center;gap:5px}
+.en{font-size:9px;color:var(--t2);width:58px;flex-shrink:0;font-family:var(--mono)}
+.ebb{flex:1;height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden}
+.ebf{height:100%;border-radius:2px;transition:width .3s cubic-bezier(.4,0,.2,1)}
+.ep{font-size:9px;color:var(--t3);width:24px;text-align:right;font-family:var(--mono)}
+.gz-wrap{padding:9px 10px 8px;border-top:1px solid rgba(255,255,255,.04);margin-top:auto}
+.gz-lbl{font-size:9px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--t3);margin-bottom:5px}
+.gz-bar{height:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:6px;position:relative}
+.gz-tick{position:absolute;top:-3px;bottom:-3px;width:1px;background:rgba(255,255,255,.1)}
+.gz-thumb{position:absolute;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;
+  border-radius:50%;transition:left .08s linear,background .2s;box-shadow:0 0 0 3px rgba(0,0,0,.4)}
+.gz-dir{font-size:10px;font-weight:500;text-align:center;margin-top:5px;
+  font-family:var(--mono);letter-spacing:.04em;transition:color .2s}
+
+/* VIEWPORT */
+#viewport{flex:1;position:relative;background:#000;overflow:hidden}
+video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+#cv{position:absolute;inset:0;width:100%;height:100%}
+
+/* ORB */
+#orb{position:absolute;top:12px;right:12px;width:76px;height:76px;border-radius:50%;
+  background:rgba(6,6,16,.78);border:1px solid var(--bo);
+  backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:center}
+.orb-r{position:absolute;border-radius:50%;border:1px solid rgba(255,255,255,.06)}
+#orb-dot{position:absolute;width:10px;height:10px;border-radius:50%;
+  background:var(--teal);border:2px solid rgba(90,200,250,.25);transition:transform .08s linear}
+.orb-lbl{position:absolute;bottom:-17px;left:50%;transform:translateX(-50%);
+  font-size:9px;color:var(--t3);font-family:var(--mono);white-space:nowrap}
+
+/* CALIB banner */
+#calib-bar{display:none;position:absolute;top:0;left:0;right:0;z-index:5;
+  background:rgba(48,209,88,.12);border-bottom:1px solid rgba(48,209,88,.3);
+  text-align:center;padding:5px;font-size:11px;color:var(--green);font-family:var(--mono)}
+
+/* BOTTOM BAR */
+#bottombar{height:40px;display:flex;align-items:center;gap:12px;padding:0 14px;flex-shrink:0;
+  background:rgba(6,6,16,.96);border-top:1px solid var(--bo);
+  backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur)}
+.bi{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--t2)}
+.bsep{width:1px;height:14px;background:var(--bo)}
+#bb-fps{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--t3)}
+#scroll-ind{display:none;font-size:11px;font-weight:600}
+
+/* LOADING */
+#loading{position:fixed;inset:0;z-index:400;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+  transition:opacity .6s}
+#loading.fade{opacity:0;pointer-events:none}
+.li{width:60px;height:60px;border-radius:18px;
+  background:linear-gradient(135deg,var(--blue),var(--purple));
+  display:flex;align-items:center;justify-content:center;font-size:26px;
+  box-shadow:0 16px 50px rgba(10,132,255,.35)}
+.lt{font-size:24px;font-weight:700;letter-spacing:-.03em}
+.lt span{background:linear-gradient(90deg,var(--blue),var(--purple));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.lb-bg{width:260px;height:3px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden}
+.lb-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:2px;width:0;transition:width .5s}
+#ld-msg{font-size:12px;color:var(--t2);font-family:var(--mono);min-height:18px;text-align:center;max-width:340px}
+.ld-steps{display:flex;flex-direction:column;gap:5px;width:260px}
+.ls{font-size:11px;color:var(--t3);display:flex;align-items:center;gap:8px;font-family:var(--mono);transition:color .3s}
+.ls.done{color:var(--green)}.ls.act{color:var(--teal)}.ls.err{color:var(--red)}
+.ls-i{width:14px;text-align:center}
+#ld-err-box{display:none;background:rgba(255,69,58,.08);border:1px solid rgba(255,69,58,.28);
+  border-radius:10px;padding:12px 16px;width:320px;font-size:11px;line-height:1.6;color:var(--red);font-family:var(--mono)}
+#ld-err-box b{color:#ff7a72;display:block;margin-bottom:4px}
+.ld-retry{margin-top:8px;padding:5px 14px;border-radius:7px;background:rgba(255,69,58,.12);
+  border:1px solid rgba(255,69,58,.3);color:var(--red);font-size:11px;cursor:pointer}
+
+/* ══════════════════════════════════════════════════════
+   CALIBRATION OVERLAY
+══════════════════════════════════════════════════════ */
+#calib-overlay{
+  position:fixed;inset:0;z-index:500;
+  background:rgba(2,2,12,.97);
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+}
+#calib-overlay.open{display:flex}
+
+/* Intro screen */
+#calib-intro{display:flex;flex-direction:column;align-items:center;gap:20px;text-align:center;max-width:480px}
+.calib-title{font-size:22px;font-weight:700;letter-spacing:-.02em}
+.calib-title span{background:linear-gradient(90deg,var(--orange),var(--red));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.calib-desc{font-size:13px;color:var(--t2);line-height:1.7}
+.calib-grid-preview{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;
+  background:rgba(255,255,255,.04);border:1px solid var(--bo);border-radius:12px;
+  padding:16px;width:200px}
+.cg-dot{width:14px;height:14px;border-radius:50%;background:rgba(255,34,68,.5);
+  border:2px solid #ff2244;margin:auto;transition:all .3s}
+.cg-dot.lit{background:#ff2244;box-shadow:0 0 12px rgba(255,34,68,.8)}
+.calib-start-btn{padding:10px 32px;border-radius:10px;font-size:13px;font-weight:600;
+  cursor:pointer;border:none;background:linear-gradient(135deg,var(--orange),var(--red));
+  color:#fff;box-shadow:0 8px 24px rgba(255,100,50,.35);transition:all .2s}
+.calib-start-btn:hover{transform:translateY(-1px);box-shadow:0 12px 30px rgba(255,100,50,.5)}
+.calib-skip{font-size:11px;color:var(--t3);cursor:pointer;text-decoration:underline}
+.calib-skip:hover{color:var(--t2)}
+
+/* Active calibration */
+#calib-active{display:none;width:100%;height:100%;position:relative}
+#calib-active.open{display:block}
+.calib-hud{position:absolute;top:24px;left:50%;transform:translateX(-50%);
+  background:rgba(10,10,30,.85);border:1px solid var(--bo2);border-radius:10px;
+  padding:10px 24px;font-size:12px;color:var(--t2);text-align:center;
+  backdrop-filter:blur(20px);white-space:nowrap}
+.calib-hud b{color:var(--orange);font-family:var(--mono)}
+.calib-hud-sub{font-size:10px;color:var(--t3);margin-top:3px}
+
+/* The moving dot */
+#calib-dot-wrap{position:absolute;transform:translate(-50%,-50%);
+  transition:left .5s cubic-bezier(.4,0,.2,1),top .5s cubic-bezier(.4,0,.2,1);
+  display:flex;align-items:center;justify-content:center}
+#calib-dot{width:52px;height:52px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,#ff6688,#ff2244);
+  border:3px solid rgba(255,255,255,.4);
+  box-shadow:0 0 40px rgba(255,34,68,.7),0 0 80px rgba(255,34,68,.3);
+  animation:cdp 1.2s ease-in-out infinite}
+@keyframes cdp{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+/* SVG progress ring */
+.calib-ring{position:absolute;width:80px;height:80px;transform:rotate(-90deg)}
+.calib-ring-bg{fill:none;stroke:rgba(255,255,255,.08);stroke-width:3}
+.calib-ring-fill{fill:none;stroke:#ff2244;stroke-width:3;stroke-linecap:round;
+  stroke-dasharray:220;stroke-dashoffset:220;transition:stroke-dashoffset .05s linear}
+/* Outer glow ring */
+.calib-outer{position:absolute;width:100px;height:100px;border-radius:50%;
+  border:1px solid rgba(255,34,68,.2);animation:expand 1.5s ease-out infinite}
+@keyframes expand{0%{transform:scale(.8);opacity:.6}100%{transform:scale(1.4);opacity:0}}
+
+/* Result screen */
+#calib-result{display:none;flex-direction:column;align-items:center;gap:16px;text-align:center}
+#calib-result.open{display:flex}
+.calib-ok-icon{font-size:48px}
+.calib-result-title{font-size:20px;font-weight:700}
+.calib-result-stats{font-size:11px;color:var(--t2);font-family:var(--mono);line-height:1.8;
+  background:rgba(255,255,255,.04);border:1px solid var(--bo);border-radius:8px;padding:12px 20px}
+
+/* HELP */
+#help-bg{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.7);
+  backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center}
+#help-bg.open{display:flex}
+#help-panel{width:min(840px,95vw);max-height:87vh;background:rgba(9,9,25,.97);
+  border:1px solid var(--bo2);border-radius:18px;overflow:hidden;
+  display:flex;flex-direction:column;box-shadow:0 50px 120px rgba(0,0,0,.7)}
+.hp-hd{display:flex;align-items:center;justify-content:space-between;
+  padding:18px 22px 14px;border-bottom:1px solid var(--bo)}
+.hp-x{width:26px;height:26px;border-radius:50%;background:var(--gl);border:1px solid var(--bo);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;
+  color:var(--t2);transition:all .2s}
+.hp-x:hover{background:rgba(255,69,58,.18);color:var(--red)}
+.hp-tabs{display:flex;gap:2px;padding:8px 22px 0;border-bottom:1px solid var(--bo)}
+.hp-tab{padding:6px 12px;font-size:11px;font-weight:500;color:var(--t2);cursor:pointer;
+  border-radius:6px 6px 0 0;border-bottom:2px solid transparent;transition:all .2s}
+.hp-tab:hover{color:var(--text);background:var(--gl)}
+.hp-tab.on{color:var(--blue);border-bottom-color:var(--blue)}
+.hp-body{flex:1;overflow-y:auto;padding:18px 22px}
+.hp-body::-webkit-scrollbar{width:4px}
+.hp-body::-webkit-scrollbar-thumb{background:var(--bo2);border-radius:2px}
+.hp-sec{display:none}.hp-sec.on{display:block}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px}
+.fc{background:var(--gl);border:1px solid var(--bo);border-radius:9px;padding:11px 13px}
+.fi{font-size:18px;margin-bottom:5px}.ft{font-size:12px;font-weight:600;margin-bottom:3px}
+.fd{font-size:11px;color:var(--t2);line-height:1.5}
+.gg{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.gc{background:var(--gl);border:1px solid var(--bo);border-radius:9px;padding:11px;text-align:center}
+.ge{font-size:26px;margin-bottom:5px}.gn{font-size:11px;font-weight:600;margin-bottom:2px}
+.ga{font-size:10px;color:var(--t2)}
+.kbt{width:100%;border-collapse:collapse}
+.kbt tr{border-bottom:1px solid rgba(255,255,255,.04)}
+.kbt tr:last-child{border:none}
+.kbt td{padding:7px 4px;font-size:11px}.kbt td:first-child{width:70px}
+kbd{display:inline-block;padding:2px 7px;border-radius:5px;background:var(--gl2);
+  border:1px solid var(--bo2);font-family:var(--mono);font-size:10px}
+.tip{background:rgba(10,132,255,.07);border:1px solid rgba(10,132,255,.18);
+  border-radius:7px;padding:9px 12px;font-size:11px;color:var(--teal);
+  margin-bottom:9px;line-height:1.5}
+.tip::before{content:"💡  "}
+h3{font-size:13px;font-weight:600;margin:0 0 9px}
+p{font-size:11px;color:var(--t2);line-height:1.6;margin-bottom:9px}
+
+/* TOAST */
+#toast{position:fixed;bottom:54px;left:50%;transform:translateX(-50%) translateY(8px);
+  background:rgba(9,9,25,.95);border:1px solid var(--bo2);border-radius:8px;
+  padding:7px 16px;font-size:11px;color:var(--teal);z-index:600;
+  font-family:var(--mono);opacity:0;transition:all .25s;white-space:nowrap;pointer-events:none}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="li">👁</div>
+  <div class="lt"><span>FaceTrack</span> Pro v4</div>
+  <div class="lb-bg"><div class="lb-fill" id="ld-bar"></div></div>
+  <div id="ld-msg">Initialising…</div>
+  <div class="ld-steps">
+    <div class="ls" id="ls0"><span class="ls-i">○</span>Camera access</div>
+    <div class="ls" id="ls1"><span class="ls-i">○</span>MediaPipe face model (local)</div>
+    <div class="ls" id="ls2"><span class="ls-i">○</span>MediaPipe hand model (local)</div>
+    <div class="ls" id="ls3"><span class="ls-i">○</span>Age · Gender · Emotion AI</div>
+    <div class="ls" id="ls4"><span class="ls-i">○</span>Ready</div>
+  </div>
+  <div id="ld-err-box">
+    <b>⚠ Error</b><span id="ld-err-msg"></span>
+    <br><button class="ld-retry" onclick="location.reload()">↺ Retry</button>
+  </div>
+</div>
+
+<!-- CALIBRATION OVERLAY -->
+<div id="calib-overlay">
+  <!-- Intro -->
+  <div id="calib-intro">
+    <div class="calib-title">🎯 <span>Gaze Calibration</span></div>
+    <div class="calib-desc">
+      Follow the red dot with your eyes as it moves around the screen.<br>
+      Keep your <b>head still</b> — only move your eyes.<br>
+      This takes about <b>18 seconds</b> and makes gaze scroll highly accurate.
+    </div>
+    <div class="calib-grid-preview" id="calib-grid-preview">
+      <!-- 9 dots filled by JS -->
+    </div>
+    <button class="calib-start-btn" onclick="startCalib()">Start Calibration →</button>
+    <div class="calib-skip" onclick="skipCalib()">Skip (use default settings)</div>
+  </div>
+
+  <!-- Active tracking -->
+  <div id="calib-active">
+    <div class="calib-hud">
+      <div>Gaze Calibration — Point <b id="calib-n">1</b> of 9</div>
+      <div class="calib-hud-sub">Follow the dot · keep head still</div>
+    </div>
+    <div id="calib-dot-wrap">
+      <div class="calib-outer"></div>
+      <svg class="calib-ring" viewBox="0 0 80 80">
+        <circle class="calib-ring-bg" cx="40" cy="40" r="35"/>
+        <circle class="calib-ring-fill" id="calib-ring-fill" cx="40" cy="40" r="35"/>
+      </svg>
+      <div id="calib-dot"></div>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div id="calib-result">
+    <div class="calib-ok-icon">✅</div>
+    <div class="calib-result-title">Calibration Complete</div>
+    <div class="calib-result-stats" id="calib-stats"></div>
+    <button class="calib-start-btn" style="margin-top:8px" onclick="closeCalib()">Start Tracking →</button>
+    <div class="calib-skip" onclick="startCalib()">Recalibrate</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div id="topbar">
+    <div class="logo-box">👁</div>
+    <span class="logo-name"><b>FaceTrack</b> Pro</span>
+    <span class="logo-ver">v4.0</span>
+    <div class="sep"></div>
+    <div class="st"><div class="dot off" id="cam-dot"></div><span id="cam-lbl">No camera</span></div>
+    <div class="sep"></div>
+    <div class="st"><div class="dot off" id="face-dot"></div><span id="face-lbl">No face</span></div>
+    <div class="sep"></div>
+    <div class="st" id="calib-status" style="color:var(--orange)"></div>
+    <div class="pills">
+      <div class="pill g" id="p-scroll" onclick="tog('scroll')"><div class="pdot"></div>Gaze Scroll</div>
+      <div class="pill b" id="p-mesh"   onclick="tog('mesh')"  ><div class="pdot"></div>Mesh</div>
+      <div class="pill"  id="p-hands"  onclick="tog('hands')" ><div class="pdot"></div>Hands</div>
+      <div class="pill"  id="p-draw"   onclick="tog('draw')"  ><div class="pdot"></div>Draw</div>
+    </div>
+    <div class="sep"></div>
+    <div class="tbtn calib-btn" onclick="openCalib()">🎯 Calibrate</div>
+    <div class="tbtn topmost-btn" id="topmost-btn" onclick="togTopmost()">⬆ Always Top</div>
+    <div class="tbtn" onclick="openHelp()">? Help</div>
+    <div class="tbtn" onclick="tog('sidebar')">⊞ Panel</div>
+  </div>
+
+  <div id="main">
+    <div id="sidebar">
+      <div class="ss">
+        <div class="sh">Biometrics</div>
+        <div class="row">
+          <div class="card"><div class="cl">Age</div><div class="cv" id="s-age" style="color:var(--orange)">—</div></div>
+          <div class="card"><div class="cl">Gender</div><div class="cv" id="s-gender" style="color:var(--purple)">—</div></div>
+        </div>
+        <div style="height:4px"></div>
+        <div class="row">
+          <div class="card"><div class="cl">Shape</div><div class="cv" id="s-shape" style="color:var(--blue)">—</div></div>
+          <div class="card"><div class="cl">Distance</div><div class="cv" id="s-dist" style="color:var(--teal)">—</div></div>
+        </div>
+      </div>
+      <div class="ss">
+        <div class="sh">Emotion — <span id="s-emo-top" style="color:var(--teal)">—</span></div>
+        <div class="card"><div class="emo-bars" id="emo-bars"></div></div>
+      </div>
+      <div class="ss">
+        <div class="sh">Eye Tracking</div>
+        <div class="row">
+          <div class="card"><div class="cl">L-EAR</div><div class="cv" id="s-lear" style="color:var(--green)">—</div></div>
+          <div class="card"><div class="cl">R-EAR</div><div class="cv" id="s-rear" style="color:var(--green)">—</div></div>
+        </div>
+        <div style="height:4px"></div>
+        <div class="row">
+          <div class="card"><div class="cl">Gaze X</div><div class="cv" id="s-gx" style="color:var(--teal)">—</div></div>
+          <div class="card"><div class="cl">Gaze Y</div><div class="cv" id="s-gy" style="color:var(--teal)">—</div></div>
+        </div>
+        <div style="height:4px"></div>
+        <div class="card"><div class="cl">Blinks / min</div><div class="cv" id="s-blink" style="color:var(--t2)">—</div></div>
+      </div>
+      <div class="ss" id="hand-sec" style="display:none">
+        <div class="sh">Hand</div>
+        <div class="card"><div class="cl">Gesture</div><div class="cv" id="s-gesture" style="color:var(--blue)">—</div></div>
+      </div>
+      <div class="gz-wrap">
+        <div class="gz-lbl">Eye Position (vertical)</div>
+        <div class="gz-bar">
+          <div class="gz-tick" id="gz-tick-up" style="left:27%"></div>
+          <div class="gz-tick" id="gz-tick-dn" style="left:73%"></div>
+          <div class="gz-thumb" id="gz-thumb" style="left:50%;background:var(--t3)"></div>
+        </div>
+        <div class="gz-dir" id="gz-dir" style="color:var(--t3)">CENTER</div>
+      </div>
+    </div>
+
+    <div id="viewport">
+      <video id="video" autoplay playsinline muted></video>
+      <canvas id="cv"></canvas>
+      <div id="calib-bar">CALIBRATING DISTANCE — hold 60 cm still — <span id="dist-calib-n">90</span> left</div>
+      <div id="orb">
+        <div class="orb-r" style="width:58px;height:58px"></div>
+        <div class="orb-r" style="width:36px;height:36px"></div>
+        <div id="orb-dot"></div>
+        <div class="orb-lbl">GAZE</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="bottombar">
+    <div class="bi"><div class="dot off" id="bb-fdot"></div><span id="bb-ftxt">No face</span></div>
+    <div class="bsep"></div>
+    <div id="scroll-ind" class="bi"></div>
+    <div id="bb-fps" style="margin-left:auto">— FPS</div>
+    <div class="bsep"></div>
+    <div style="font-size:10px;color:var(--t3)">FaceTrack Pro v4.0 — Offline</div>
+  </div>
+</div>
+
+<!-- HELP -->
+<div id="help-bg" onclick="if(event.target===this)closeHelp()">
+  <div id="help-panel">
+    <div class="hp-hd">
+      <div style="font-size:16px;font-weight:600">📖 FaceTrack Pro — Help</div>
+      <div class="hp-x" onclick="closeHelp()">✕</div>
+    </div>
+    <div class="hp-tabs">
+      <div class="hp-tab on"  onclick="hpTab('ov',this)">Overview</div>
+      <div class="hp-tab"     onclick="hpTab('gaze',this)">Gaze Scroll</div>
+      <div class="hp-tab"     onclick="hpTab('kb',this)">Shortcuts</div>
+      <div class="hp-tab"     onclick="hpTab('gs',this)">Gestures</div>
+      <div class="hp-tab"     onclick="hpTab('draw',this)">Drawing</div>
+    </div>
+    <div class="hp-body">
+      <div class="hp-sec on" id="hp-ov">
+        <h3>FaceTrack Pro v4.0 — Fully Offline</h3>
+        <p>All AI runs locally on your device. No internet needed after setup. Powered by Google MediaPipe (face + hand) and face-api.js (emotion, age, gender).</p>
+        <div class="tip">System-wide gaze scroll works in every app on your PC — browsers, Word, Excel, PDF readers, everything. Move your cursor over the target app and look up or down.</div>
+        <div class="fg">
+          <div class="fc"><div class="fi">🎯</div><div class="ft">Gaze Calibration</div><div class="fd">9-point dot-following calibration builds a personal iris→gaze map for accurate, individual scroll thresholds.</div></div>
+          <div class="fc"><div class="fi">🌐</div><div class="ft">System-Wide Scroll</div><div class="fd">Gaze scroll fires Windows mouse wheel events at the cursor position — affects any app under the cursor.</div></div>
+          <div class="fc"><div class="fi">🧠</div><div class="ft">Full Biometric Mesh</div><div class="fd">478-point face mesh · 2,556 triangles · iris rings + crosshairs · all contour groups with glow.</div></div>
+          <div class="fc"><div class="fi">😊</div><div class="ft">Emotion AI</div><div class="fd">7-class emotion recognition with animated confidence bars, smoothed over frames.</div></div>
+          <div class="fc"><div class="fi">✋</div><div class="ft">Hand Tracking</div><div class="fd">21-landmark hand model with coloured finger bones, gesture recognition, and finger drawing.</div></div>
+          <div class="fc"><div class="fi">📏</div><div class="ft">Distance</div><div class="fd">Dual-method: face width + inter-pupillary distance averaged. Calibrate with C at 60 cm.</div></div>
+        </div>
+      </div>
+      <div class="hp-sec" id="hp-gaze">
+        <h3>Gaze Scroll — How to Use</h3>
+        <div class="tip">Calibrate first with the 🎯 Calibrate button for best accuracy. Without calibration, default thresholds are used.</div>
+        <h3 style="margin-top:12px">Step by step</h3>
+        <ol style="font-size:12px;color:var(--t2);line-height:2.4;margin-left:16px">
+          <li>Click <b style="color:var(--orange)">🎯 Calibrate</b> and follow the red dot through all 9 positions</li>
+          <li>Make sure <b style="color:var(--green)">Gaze Scroll</b> pill is green (on)</li>
+          <li>Click <b style="color:var(--blue)">⬆ Always Top</b> so FaceTrack floats above other apps</li>
+          <li>Move your mouse cursor over the window you want to scroll (browser, Word, etc.)</li>
+          <li>Look <b>up</b> and hold for ~0.3 s → the target window scrolls up</li>
+          <li>Look <b>down</b> and hold for ~0.3 s → scrolls down</li>
+          <li>Look centre → stops immediately</li>
+        </ol>
+        <h3 style="margin-top:14px">Why calibration matters</h3>
+        <p>Everyone's eyes sit differently. Calibration measures your personal iris ratio at known screen positions (top, middle, bottom) and computes exact thresholds for UP and DOWN. Without it, the system uses conservative defaults that may feel less responsive.</p>
+        <h3 style="margin-top:14px">Fine-tuning</h3>
+        <p>If scroll fires too easily — press <kbd>U</kbd> to tighten the up-zone or <kbd>J</kbd> to tighten the down-zone. If it's not sensitive enough, press <kbd>I</kbd> / <kbd>K</kbd> to widen zones.</p>
+      </div>
+      <div class="hp-sec" id="hp-kb">
+        <h3>Keyboard Shortcuts</h3>
+        <table class="kbt">
+          <tr><td><kbd>S</kbd></td><td style="color:var(--t2)">Toggle gaze scroll</td></tr>
+          <tr><td><kbd>M</kbd></td><td style="color:var(--t2)">Toggle biometric mesh</td></tr>
+          <tr><td><kbd>N</kbd></td><td style="color:var(--t2)">Cycle mesh: Full → Contours → Minimal</td></tr>
+          <tr><td><kbd>T</kbd></td><td style="color:var(--t2)">Toggle hand tracking</td></tr>
+          <tr><td><kbd>D</kbd></td><td style="color:var(--t2)">Toggle finger drawing</td></tr>
+          <tr><td><kbd>X</kbd></td><td style="color:var(--t2)">Clear drawing canvas</td></tr>
+          <tr><td><kbd>B</kbd></td><td style="color:var(--t2)">Cycle brush colour</td></tr>
+          <tr><td><kbd>1–5</kbd></td><td style="color:var(--t2)">Brush size</td></tr>
+          <tr><td><kbd>C</kbd></td><td style="color:var(--t2)">Calibrate distance (stand 60 cm from camera)</td></tr>
+          <tr><td><kbd>G</kbd></td><td style="color:var(--t2)">Open gaze calibration</td></tr>
+          <tr><td><kbd>U / I</kbd></td><td style="color:var(--t2)">Tighten / widen up-scroll zone</td></tr>
+          <tr><td><kbd>J / K</kbd></td><td style="color:var(--t2)">Tighten / widen down-scroll zone</td></tr>
+          <tr><td><kbd>R</kbd></td><td style="color:var(--t2)">Reset biometric readings</td></tr>
+          <tr><td><kbd>P</kbd></td><td style="color:var(--t2)">Toggle sidebar panel</td></tr>
+          <tr><td><kbd>F</kbd></td><td style="color:var(--t2)">Fullscreen</td></tr>
+          <tr><td><kbd>?</kbd></td><td style="color:var(--t2)">Open / close help</td></tr>
+        </table>
+      </div>
+      <div class="hp-sec" id="hp-gs">
+        <h3>Hand Gestures <span style="font-size:11px;color:var(--t2);font-weight:400">— enable with T</span></h3>
+        <div class="gg">
+          <div class="gc"><div class="ge">☝️</div><div class="gn">Pointing</div><div class="ga">Move up/down to scroll</div></div>
+          <div class="gc"><div class="ge">🤌</div><div class="gn">Pinch</div><div class="ga">Draw on canvas (D on)</div></div>
+          <div class="gc"><div class="ge">✌️</div><div class="gn">Peace / V</div><div class="ga">Hand-scroll mode</div></div>
+          <div class="gc"><div class="ge">🖐️</div><div class="gn">Open Palm</div><div class="ga">Pause actions</div></div>
+          <div class="gc"><div class="ge">✊</div><div class="gn">Fist</div><div class="ga">Stop / reset</div></div>
+          <div class="gc"><div class="ge">👍</div><div class="gn">Thumbs Up</div><div class="ga">Detected and shown</div></div>
+        </div>
+      </div>
+      <div class="hp-sec" id="hp-draw">
+        <h3>Drawing Controls</h3>
+        <div class="tip">Enable drawing with D (or the Draw pill), then use hand Pinch gesture or press X to clear.</div>
+        <table class="kbt">
+          <tr><td><kbd>D</kbd></td><td style="color:var(--t2)">Toggle finger drawing on/off</td></tr>
+          <tr><td><kbd>X</kbd></td><td style="color:var(--t2)">Clear entire drawing canvas</td></tr>
+          <tr><td><kbd>B</kbd></td><td style="color:var(--t2)">Cycle brush colour (green → cyan → pink → amber → yellow)</td></tr>
+          <tr><td><kbd>1</kbd></td><td style="color:var(--t2)">Brush size: tiny (3px)</td></tr>
+          <tr><td><kbd>2</kbd></td><td style="color:var(--t2)">Brush size: small (6px)</td></tr>
+          <tr><td><kbd>3</kbd></td><td style="color:var(--t2)">Brush size: medium (9px)</td></tr>
+          <tr><td><kbd>4</kbd></td><td style="color:var(--t2)">Brush size: large (12px)</td></tr>
+          <tr><td><kbd>5</kbd></td><td style="color:var(--t2)">Brush size: extra large (15px)</td></tr>
+        </table>
+        <p style="margin-top:12px">To draw: enable T (hand tracking) + D (draw mode), then bring your hand up and <b>pinch</b> your index finger and thumb together. Move your hand to draw a stroke. Release to lift the pen.</p>
+        <p>There is no undo. Press <kbd>X</kbd> to clear everything and start fresh.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+// ════════════════════════════════════════════════════════
+//  ERROR DISPLAY
+// ════════════════════════════════════════════════════════
+function showErr(msg) {
+  $('ld-err-box').style.display='block';
+  $('ld-err-msg').textContent=' '+msg;
+  $('ld-msg').style.color='var(--red)';
+  $('ld-msg').textContent='❌ '+msg;
+}
+window.addEventListener('unhandledrejection', e=>showErr(String(e.reason)));
+window.addEventListener('error', e=>showErr(e.message));
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+
+// ════════════════════════════════════════════════════════
+//  MEDIAPIPE — loaded from local node_modules (offline)
+// ════════════════════════════════════════════════════════
+let FL, HL, FR;
+try {
+  const mp = await import('./node_modules/@mediapipe/tasks-vision/vision_bundle.mjs');
+  FL = mp.FaceLandmarker; HL = mp.HandLandmarker; FR = mp.FilesetResolver;
+} catch(e) { showErr('MediaPipe load failed: '+e.message); throw e; }
+
+if (!window.faceapi) { showErr('face-api.js failed. Re-run setup.bat.'); throw new Error(); }
+const fa = window.faceapi;
+
+// ════════════════════════════════════════════════════════
+//  MESH CONNECTIONS
+// ════════════════════════════════════════════════════════
+const MESH = {
+  tess: [[18,17],[82,38],[8,9],[456,248],[167,2],[303,271],[69,104],[253,450],[41,42],[315,16],[73,74],[339,373],[258,385],[105,63],[219,48],[304,272],[236,217],[231,22],[85,84],[365,367],[237,218],[243,112],[436,427],[409,410],[248,456],[330,266],[136,135],[88,95],[394,430],[107,108],[118,117],[439,438],[442,443],[260,466],[115,48],[342,276],[121,128],[200,421],[113,124],[132,137],[23,230],[343,357],[443,444],[62,78],[26,155],[228,110],[432,434],[364,379],[325,308],[424,430],[36,205],[363,420],[21,162],[328,462],[419,351],[366,345],[193,8],[363,456],[183,80],[307,375],[94,2],[333,284],[17,313],[185,40],[44,1],[291,287],[411,352],[20,238],[59,166],[272,310],[420,437],[387,260],[130,226],[51,45],[175,377],[202,214],[353,383],[339,448],[291,408],[466,260],[264,454],[457,440],[355,429],[96,89],[128,121],[187,207],[360,278],[306,307],[446,467],[165,39],[337,151],[168,193],[73,41],[318,403],[263,467],[283,445],[74,42],[201,83],[65,222],[37,11],[429,355],[272,408],[179,180],[100,36],[158,157],[438,440],[358,331],[281,456],[136,138],[314,404],[417,8],[34,127],[367,416],[180,181],[426,322],[419,197],[457,309],[215,138],[242,241],[33,247],[53,225],[126,209],[467,359],[224,223],[271,304],[97,2],[183,191],[202,204],[95,78],[246,247],[177,147],[357,343],[65,55],[116,137],[135,150],[382,256],[199,171],[298,293],[16,315],[204,106],[149,170],[150,135],[403,315],[61,57],[205,187],[44,4],[358,429],[277,355],[438,309],[42,80],[236,174],[128,232],[302,268],[313,314],[240,64],[291,375],[260,387],[113,225],[107,65],[247,225],[346,347],[44,125],[378,379],[466,263],[250,459],[50,205],[111,35],[76,77],[122,193],[209,198],[201,194],[408,407],[285,336],[2,393],[243,190],[336,9],[234,227],[293,276],[221,28],[57,185],[217,174],[131,134],[344,278],[343,399],[28,158],[128,245],[463,464],[443,257],[394,364],[164,167],[10,109],[196,236],[429,358],[174,217],[452,341],[2,370],[84,180],[320,307],[0,37],[250,328],[101,119],[41,74],[399,456],[13,12],[218,115],[343,412],[16,17],[55,8],[107,55],[153,22],[440,344],[393,269],[364,434],[38,41],[296,336],[68,63],[402,317],[456,437],[253,374],[254,339],[67,104],[392,309],[145,23],[63,70],[403,318],[127,234],[415,292],[54,21],[168,6],[72,38],[204,194],[83,84],[282,293],[302,271],[120,231],[434,427],[320,405],[426,423],[441,286],[145,144],[341,464],[208,200],[250,462],[112,232],[258,286],[418,424],[160,159],[286,384],[421,200],[274,1],[200,201],[166,59],[111,123],[211,210],[330,347],[422,430],[214,135],[280,346],[107,9],[265,446],[244,243],[417,351],[110,163],[450,348],[396,377],[245,244],[83,182],[8,417],[451,349],[203,98],[376,435],[101,50],[345,447],[412,357],[238,241],[90,77],[369,395],[276,353],[253,449],[359,467],[279,358],[315,15],[433,416],[299,336],[46,156],[167,37],[460,290],[311,310],[410,432],[357,277],[35,226],[304,271],[189,55],[314,315],[108,67],[1,4],[4,275],[205,36],[156,143],[436,426],[223,53],[461,370],[23,144],[29,224],[244,112],[348,349],[340,345],[122,6],[401,361],[228,24],[252,381],[37,164],[192,187],[177,58],[410,409],[316,402],[381,382],[429,279],[140,176],[26,154],[434,394],[52,63],[79,166],[72,41],[71,162],[244,233],[222,65],[214,210],[354,370],[140,32],[30,160],[212,57],[444,443],[7,33],[301,251],[213,138],[170,176],[17,83],[268,302],[32,211],[331,358],[186,40],[105,52],[457,354],[395,379],[375,321],[325,320],[317,316],[274,354],[96,88],[15,14],[467,260],[232,128],[404,320],[350,349],[342,265],[74,185],[314,17],[146,61],[247,113],[405,321],[256,341],[283,444],[409,291],[74,41],[78,191],[245,188],[103,104],[19,370],[19,141],[280,411],[220,131],[85,86],[372,265],[237,220],[204,43],[118,119],[210,202],[290,460],[450,449],[83,18],[197,3],[315,404],[461,458],[169,170],[246,161],[32,201],[236,196],[409,304],[295,282],[395,369],[181,180],[353,372],[139,34],[432,436],[370,461],[184,42],[96,78],[113,247],[326,391],[147,123],[126,100],[205,101],[452,350],[71,21],[16,85],[297,333],[136,150],[260,445],[34,139],[46,113],[17,315],[104,54],[383,372],[417,285],[150,170],[20,60],[39,73],[45,4],[438,344],[37,0],[177,123],[336,296],[102,129],[134,198],[175,199],[302,303],[293,334],[87,86],[99,240],[240,99],[364,394],[64,102],[256,452],[337,297],[383,264],[141,242],[188,174],[120,119],[207,187],[467,263],[30,225],[131,48],[425,266],[121,120],[85,17],[28,157],[337,9],[342,353],[154,153],[361,366],[227,137],[52,105],[118,50],[217,209],[424,422],[249,390],[196,6],[26,232],[287,273],[210,169],[350,329],[62,191],[276,300],[248,281],[368,383],[427,432],[453,341],[372,353],[357,453],[101,118],[321,307],[407,310],[266,371],[420,429],[306,407],[253,252],[224,225],[112,133],[356,264],[370,19],[254,253],[219,115],[225,46],[124,143],[289,439],[13,312],[253,373],[154,22],[319,318],[363,281],[169,150],[355,277],[354,461],[267,164],[320,319],[39,40],[277,357],[63,105],[189,244],[34,227],[120,230],[293,301],[60,99],[72,73],[283,293],[307,321],[321,405],[93,132],[183,62],[408,409],[151,338],[186,216],[151,109],[245,122],[189,221],[335,424],[442,258],[441,442],[114,47],[173,133],[452,451],[106,43],[305,289],[362,414],[443,259],[294,279],[258,442],[57,43],[256,252],[259,443],[46,70],[420,360],[126,142],[371,355],[112,244],[431,369],[47,114],[100,126],[12,13],[91,77],[23,22],[51,4],[48,115],[254,449],[160,27],[353,342],[434,416],[266,423],[4,274],[316,15],[4,45],[24,23],[80,183],[341,453],[109,67],[174,196],[66,105],[89,88],[29,223],[164,2],[462,370],[328,290],[400,395],[181,91],[252,380],[24,144],[313,18],[354,19],[185,61],[90,89],[116,227],[168,417],[329,371],[156,34],[450,252],[8,285],[164,267],[168,8],[153,145],[361,323],[285,413],[346,280],[117,228],[130,247],[140,211],[426,425],[53,63],[245,233],[2,97],[216,206],[195,3],[459,458],[178,179],[276,342],[235,75],[399,412],[185,74],[170,211],[465,357],[222,221],[75,59],[229,117],[422,432],[327,423],[275,4],[12,268],[267,0],[64,49],[244,245],[115,131],[376,401],[171,32],[161,247],[26,22],[454,356],[166,218],[420,363],[233,128],[193,55],[278,279],[405,320],[334,296],[279,360],[201,32],[220,45],[315,17],[354,274],[167,39],[51,236],[3,196],[108,69],[128,47],[266,426],[99,20],[259,387],[137,132],[273,321],[394,431],[285,295],[437,429],[83,17],[315,403],[449,254],[461,457],[260,467],[359,446],[184,185],[411,376],[263,249],[462,458],[215,172],[52,65],[247,161],[191,80],[424,431],[36,206],[262,369],[296,282],[396,369],[134,220],[335,273],[214,212],[193,189],[364,416],[270,409],[444,445],[229,228],[330,280],[456,419],[260,444],[188,196],[406,418],[30,247],[398,414],[17,314],[210,214],[17,85],[423,358],[63,52],[19,274],[272,311],[50,118],[14,15],[180,84],[5,195],[240,98],[439,344],[256,451],[123,187],[15,16],[96,90],[141,241],[6,196],[360,279],[347,346],[198,217],[318,319],[358,355],[418,406],[115,219],[190,133],[77,76],[110,24],[48,49],[80,81],[333,298],[353,276],[141,97],[373,254],[69,108],[418,262],[463,413],[294,455],[21,68],[81,82],[118,229],[284,298],[371,266],[384,385],[231,26],[395,394],[322,410],[248,195],[361,401],[214,202],[119,230],[111,226],[43,91],[383,276],[168,351],[449,450],[314,405],[55,65],[182,106],[394,434],[393,326],[210,204],[211,169],[450,451],[203,165],[22,153],[143,34],[409,270],[7,110],[448,261],[213,215],[371,423],[64,235],[9,336],[278,344],[89,179],[236,198],[336,285],[181,182],[194,201],[66,52],[151,10],[123,177],[341,256],[455,278],[326,393],[257,442],[269,267],[203,142],[238,20],[268,271],[254,373],[414,362],[305,455],[357,465],[189,243],[42,81],[286,441],[179,86],[217,198],[84,83],[456,363],[214,192],[326,370],[107,66],[247,226],[88,89],[27,222],[120,121],[99,98],[279,294],[151,108],[75,235],[150,149],[388,466],[129,126],[447,372],[366,447],[70,156],[56,221],[171,208],[190,221],[28,159],[435,397],[54,68],[368,264],[214,169],[294,278],[221,65],[206,165],[29,160],[281,195],[33,130],[447,264],[298,284],[278,455],[201,208],[427,434],[360,344],[321,273],[379,394],[265,372],[274,457],[101,120],[182,194],[227,116],[253,254],[352,376],[4,44],[351,417],[350,452],[283,282],[194,204],[55,9],[106,91],[410,322],[48,235],[316,315],[367,397],[427,411],[319,320],[193,244],[398,384],[331,294],[313,17],[297,338],[164,37],[403,319],[349,348],[47,126],[8,55],[147,213],[320,321],[227,93],[134,131],[44,237],[393,391],[439,278],[451,252],[120,232],[287,409],[221,55],[385,386],[347,280],[57,212],[58,177],[257,386],[216,205],[208,201],[386,387],[459,457],[137,177],[391,322],[49,64],[55,107],[308,324],[372,345],[11,37],[431,394],[171,175],[330,348],[156,46],[11,302],[280,347],[452,453],[352,366],[12,38],[64,48],[22,231],[414,463],[448,339],[422,287],[59,235],[13,268],[298,251],[237,241],[68,54],[120,101],[92,39],[43,146],[377,400],[238,242],[91,43],[369,396],[301,298],[286,398],[346,449],[220,44],[299,337],[358,423],[131,115],[3,195],[23,24],[416,364],[123,111],[160,29],[326,327],[266,425],[345,340],[53,52],[98,203],[411,434],[358,279],[3,51],[261,346],[367,364],[66,107],[86,85],[445,283],[24,110],[23,145],[89,90],[449,253],[340,346],[235,64],[67,108],[228,25],[119,118],[250,309],[90,91],[269,322],[264,356],[84,17],[316,403],[407,292],[426,391],[399,437],[212,202],[175,171],[117,50],[374,380],[165,206],[205,50],[185,184],[30,161],[445,260],[184,76],[195,5],[186,185],[446,261],[357,412],[392,290],[225,113],[17,84],[189,190],[384,286],[329,350],[429,437],[241,237],[19,44],[165,98],[219,218],[4,1],[50,117],[222,223],[422,434],[175,148],[198,131],[204,211],[68,21],[381,252],[462,326],[60,166],[174,188],[414,286],[339,255],[115,218],[411,280],[181,83],[401,352],[333,297],[46,124],[373,253],[71,68],[424,335],[76,146],[49,129],[69,107],[335,406],[148,171],[460,294],[192,214],[446,359],[391,423],[105,66],[410,436],[110,144],[249,339],[163,7],[273,287],[45,51],[225,247],[373,374],[38,12],[263,359],[173,56],[159,158],[461,459],[111,117],[211,204],[225,224],[151,9],[370,462],[55,221],[156,124],[196,197],[47,217],[285,9],[208,171],[280,425],[164,393],[258,257],[229,230],[389,368],[139,156],[353,265],[412,351],[218,220],[304,409],[311,268],[370,354],[288,401],[179,85],[159,27],[190,243],[196,174],[295,296],[142,203],[173,190],[193,168],[325,324],[425,411],[391,269],[99,97],[347,348],[366,361],[2,164],[131,49],[26,112],[380,381],[211,194],[104,68],[124,46],[234,34],[413,414],[432,427],[452,256],[177,137],[43,57],[276,445],[248,197],[209,126],[142,36],[226,35],[2,141],[237,44],[435,288],[129,102],[273,375],[166,20],[425,280],[77,91],[461,462],[306,408],[247,130],[206,92],[193,122],[200,18],[157,56],[352,411],[46,225],[345,372],[264,447],[436,410],[17,18],[28,27],[235,240],[128,114],[134,45],[198,209],[64,129],[459,250],[192,135],[112,26],[404,314],[297,337],[428,262],[81,38],[51,195],[311,271],[442,282],[179,88],[252,450],[191,62],[84,85],[203,36],[443,283],[121,232],[321,406],[226,25],[323,366],[117,118],[122,196],[191,183],[397,288],[383,353],[161,160],[25,7],[11,72],[239,79],[305,290],[464,463],[22,230],[183,184],[143,111],[442,295],[241,125],[12,302],[426,436],[13,38],[428,396],[127,139],[120,100],[259,444],[378,395],[183,76],[260,259],[427,436],[346,448],[306,375],[255,446],[36,142],[369,431],[51,5],[435,376],[282,283],[462,250],[347,449],[205,216],[64,240],[267,11],[351,419],[431,262],[411,433],[143,124],[190,56],[315,316],[346,340],[116,143],[316,317],[327,326],[206,36],[192,138],[464,417],[149,176],[356,389],[349,350],[102,64],[47,128],[81,41],[147,215],[450,253],[25,226],[467,342],[332,297],[464,453],[270,322],[117,229],[282,296],[129,203],[155,112],[434,430],[345,352],[465,417],[248,419],[61,184],[216,207],[307,325],[202,43],[313,405],[79,238],[39,165],[177,215],[392,289],[329,349],[201,200],[87,178],[448,449],[172,136],[266,329],[274,4],[165,97],[226,113],[56,190],[323,454],[264,368],[229,118],[75,60],[88,179],[415,308],[293,282],[212,214],[204,210],[230,119],[176,148],[188,122],[339,254],[42,184],[342,445],[199,396],[166,219],[419,399],[30,29],[15,315],[236,134],[301,300],[333,332],[352,345],[52,53],[166,75],[192,213],[3,197],[77,146],[363,360],[334,333],[6,351],[6,122],[406,321],[284,332],[350,277],[8,168],[129,49],[0,164],[300,276],[86,87],[226,247],[119,120],[37,167],[111,116],[451,450],[335,418],[40,92],[52,66],[285,417],[224,29],[330,425],[285,8],[236,3],[307,292],[187,147],[139,70],[185,186],[270,410],[456,420],[407,415],[294,358],[78,96],[259,257],[218,219],[417,465],[304,408],[56,157],[63,53],[349,330],[241,239],[261,446],[281,275],[396,262],[441,413],[327,391],[100,120],[346,261],[348,450],[340,446],[180,85],[252,253],[137,123],[349,451],[462,328],[455,289],[6,197],[377,369],[115,220],[35,111],[383,300],[110,25],[437,420],[333,299],[252,374],[31,226],[71,70],[104,67],[49,131],[463,414],[118,230],[104,103],[155,154],[220,134],[262,396],[70,46],[436,432],[167,164],[170,169],[211,170],[77,90],[22,154],[237,79],[197,6],[143,35],[146,77],[434,364],[72,11],[9,337],[465,351],[89,180],[255,249],[295,285],[90,181],[91,146],[143,156],[18,421],[232,121],[425,436],[257,443],[29,27],[327,358],[433,376],[299,296],[259,260],[405,314],[158,28],[217,114],[197,248],[124,35],[375,291],[321,320],[324,325],[336,299],[62,96],[22,23],[281,363],[443,282],[20,99],[124,156],[464,341],[27,223],[125,237],[148,140],[279,331],[32,194],[44,19],[244,193],[439,289],[453,452],[12,72],[343,437],[94,370],[94,141],[429,360],[444,259],[322,270],[121,100],[199,428],[379,395],[32,171],[322,391],[389,301],[279,429],[394,379],[453,465],[380,252],[416,434],[362,463],[309,457],[6,419],[193,245],[413,285],[310,272],[163,110],[29,30],[69,66],[114,217],[328,326],[431,418],[98,129],[171,199],[303,269],[91,90],[156,70],[282,295],[287,410],[73,72],[194,182],[408,291],[221,56],[126,47],[137,93],[49,209],[257,387],[416,411],[176,170],[95,96],[235,219],[401,288],[346,352],[79,237],[218,166],[430,431],[289,455],[82,13],[108,151],[355,437],[342,467],[276,293],[308,325],[427,425],[97,141],[431,395],[423,391],[190,189],[330,349],[162,127],[359,263],[464,465],[376,352],[223,222],[435,401],[230,118],[222,28],[408,304],[50,187],[42,183],[183,42],[187,192],[25,130],[265,340],[92,40],[371,358],[211,140],[35,143],[15,85],[142,126],[195,281],[440,457],[221,190],[386,257],[277,350],[251,298],[383,368],[255,448],[290,289],[317,14],[103,54],[414,441],[160,30],[174,114],[326,328],[460,328],[152,175],[124,113],[367,365],[98,240],[64,98],[262,428],[396,428],[122,188],[327,328],[80,42],[265,353],[38,82],[282,442],[209,49],[73,39],[25,228],[302,11],[100,142],[447,366],[460,305],[451,256],[1,19],[421,313],[370,2],[434,432],[321,375],[308,292],[179,178],[39,167],[459,461],[46,63],[391,326],[417,464],[197,195],[230,229],[356,368],[349,329],[241,238],[326,462],[52,222],[401,376],[172,138],[245,128],[288,435],[382,362],[407,306],[187,123],[292,325],[212,216],[411,425],[143,116],[349,450],[216,186],[296,295],[18,201],[247,30],[262,418],[14,316],[14,87],[114,174],[195,248],[300,301],[162,71],[181,84],[423,371],[369,400],[330,329],[142,129],[188,245],[333,334],[334,299],[274,19],[251,301],[264,383],[76,183],[355,358],[434,422],[286,258],[372,447],[31,117],[438,392],[38,13],[1,274],[168,122],[121,47],[7,25],[138,136],[262,431],[97,98],[369,377],[463,341],[401,366],[146,76],[9,107],[451,452],[238,79],[462,461],[132,177],[441,258],[339,390],[204,202],[90,180],[410,270],[355,371],[176,140],[27,160],[447,454],[114,128],[466,467],[188,114],[141,2],[91,181],[78,62],[232,120],[48,219],[400,378],[207,212],[406,421],[199,208],[439,455],[250,290],[405,313],[269,303],[295,441],[36,101],[261,448],[388,260],[20,242],[414,398],[273,422],[433,411],[4,5],[159,28],[255,261],[175,152],[117,31],[99,242],[133,155],[53,46],[66,65],[406,313],[322,436],[337,299],[134,236],[456,399],[328,250],[247,33],[365,397],[70,71],[338,151],[35,113],[94,19],[194,106],[447,323],[31,228],[185,57],[63,68],[104,69],[43,202],[217,126],[21,71],[454,447],[140,171],[398,286],[245,193],[56,28],[196,188],[435,433],[54,104],[368,300],[273,291],[92,216],[255,359],[437,399],[309,250],[322,269],[113,46],[59,75],[146,43],[358,371],[362,341],[148,152],[200,428],[140,148],[221,222],[200,199],[240,235],[272,304],[232,231],[421,18],[446,340],[55,189],[169,211],[287,432],[228,117],[233,232],[125,141],[453,464],[310,415],[289,392],[416,433],[322,426],[294,327],[118,101],[199,175],[438,457],[366,352],[404,315],[269,270],[367,433],[298,333],[311,272],[0,267],[252,451],[179,89],[25,31],[278,360],[269,391],[325,292],[413,441],[107,69],[92,206],[365,364],[363,440],[62,183],[187,214],[455,294],[133,243],[387,388],[219,166],[350,357],[109,151],[448,254],[419,456],[431,430],[50,101],[423,426],[222,27],[287,422],[321,335],[152,377],[165,167],[167,97],[43,61],[306,291],[79,20],[465,464],[432,287],[195,51],[221,189],[239,237],[85,179],[272,271],[445,342],[344,439],[42,74],[162,139],[347,450],[133,112],[387,257],[460,327],[57,202],[271,311],[123,147],[437,343],[275,281],[340,261],[161,30],[338,337],[357,350],[217,47],[309,459],[255,339],[287,291],[139,127],[268,12],[38,81],[230,22],[101,100],[81,42],[220,237],[404,403],[351,168],[405,404],[61,185],[396,175],[93,137],[79,239],[313,406],[424,273],[266,330],[196,122],[435,367],[108,9],[242,238],[375,273],[293,283],[205,207],[123,137],[130,33],[223,224],[230,120],[408,306],[92,186],[345,366],[18,200],[65,52],[76,61],[9,8],[342,446],[14,86],[202,57],[335,321],[20,166],[379,364],[265,342],[32,140],[385,258],[390,373],[231,120],[77,62],[257,258],[15,316],[42,41],[289,290],[340,372],[187,50],[352,346],[70,139],[416,367],[41,81],[285,441],[277,437],[178,86],[224,53],[284,333],[116,111],[108,107],[415,407],[1,44],[327,294],[439,392],[57,61],[138,135],[109,108],[229,24],[106,182],[277,329],[278,294],[274,440],[436,322],[422,424],[286,414],[360,363],[359,255],[85,15],[397,367],[224,30],[27,159],[139,71],[406,335],[344,360],[348,330],[418,431],[269,302],[189,193],[36,100],[230,231],[169,135],[441,414],[447,345],[407,272],[44,220],[100,121],[200,208],[264,372],[270,303],[271,268],[276,383],[434,411],[198,134],[144,163],[411,427],[349,452],[275,274],[242,97],[307,306],[133,190],[234,93],[5,4],[445,276],[329,330],[374,252],[27,28],[0,11],[437,277],[382,341],[140,170],[280,330],[166,79],[111,143],[226,130],[186,57],[391,426],[105,69],[123,117],[256,381],[301,389],[428,200],[167,165],[132,58],[19,1],[125,19],[89,96],[418,421],[340,352],[48,64],[228,31],[459,309],[72,12],[169,210],[215,177],[172,215],[215,213],[455,460],[417,168],[461,354],[413,463],[290,392],[43,106],[423,327],[300,293],[34,143],[207,214],[119,101],[299,297],[377,396],[171,148],[40,73],[41,38],[273,424],[146,91],[141,125],[299,333],[12,11],[218,79],[50,123],[255,263],[180,89],[233,244],[45,44],[217,236],[351,465],[96,95],[187,213],[113,35],[352,280],[426,266],[292,415],[65,107],[164,0],[2,167],[22,145],[444,283],[429,420],[34,156],[100,101],[291,306],[138,213],[391,393],[43,204],[294,460],[414,413],[319,404],[420,456],[352,401],[413,417],[292,307],[175,396],[223,27],[209,129],[422,273],[214,207],[206,203],[131,209],[232,112],[425,427],[392,250],[457,459],[444,260],[281,4],[433,367],[199,200],[197,419],[11,0],[344,438],[122,245],[300,368],[86,179],[32,208],[232,233],[446,342],[203,206],[449,347],[202,210],[19,354],[19,125],[220,115],[412,465],[206,216],[154,26],[452,357],[70,63],[170,150],[135,192],[69,67],[421,406],[367,435],[328,327],[333,293],[139,162],[305,460],[97,165],[393,164],[303,270],[268,312],[341,382],[421,262],[440,275],[25,33],[258,384],[332,333],[364,365],[269,393],[222,52],[437,355],[96,62],[6,168],[440,360],[58,215],[397,435],[465,453],[358,327],[417,413],[135,169],[125,241],[326,2],[291,273],[49,102],[75,240],[61,76],[372,383],[205,206],[184,183],[144,110],[23,229],[412,419],[9,151],[62,77],[327,460],[325,307],[310,407],[329,277],[195,197],[267,302],[10,151],[170,140],[28,56],[288,361],[363,275],[15,86],[463,362],[209,217],[106,204],[213,187],[386,258],[215,147],[127,34],[387,259],[71,139],[240,60],[432,410],[241,141],[214,187],[225,53],[111,31],[430,422],[117,111],[182,91],[229,23],[134,51],[174,236],[319,325],[419,412],[9,285],[98,97],[282,443],[73,40],[302,12],[318,402],[404,405],[275,440],[34,234],[65,221],[86,15],[405,406],[358,294],[225,30],[116,123],[309,438],[135,136],[196,3],[440,363],[272,407],[467,466],[273,335],[438,439],[226,31],[110,228],[391,327],[449,448],[197,196],[129,98],[61,43],[106,194],[52,223],[237,125],[33,246],[341,362],[53,224],[408,272],[45,220],[280,352],[351,412],[271,303],[231,230],[267,269],[79,218],[37,72],[390,339],[313,421],[157,173],[437,456],[458,250],[47,121],[60,240],[412,399],[39,37],[76,184],[123,116],[362,398],[309,392],[302,267],[293,298],[92,165],[4,281],[186,92],[58,172],[3,236],[105,104],[178,88],[418,335],[395,431],[108,109],[428,199],[194,32],[99,60],[250,458],[97,99],[83,201],[98,64],[343,277],[35,124],[114,188],[5,281],[440,438],[372,340],[243,189],[90,96],[419,6],[323,447],[9,108],[289,305],[216,92],[433,435],[212,207],[411,416],[130,25],[129,209],[441,295],[392,439],[91,182],[331,279],[270,269],[329,355],[295,442],[241,242],[301,293],[18,313],[93,227],[399,419],[419,248],[303,302],[274,275],[41,73],[252,256],[37,39],[304,303],[156,139],[296,299],[351,6],[242,99],[188,128],[467,446],[371,329],[337,336],[402,316],[235,59],[67,103],[125,44],[56,173],[145,22],[464,413],[190,173],[267,393],[319,403],[72,37],[232,26],[292,306],[403,402],[320,404],[360,440],[441,285],[368,301],[425,426],[2,94],[341,463],[208,199],[215,58],[407,408],[101,36],[455,305],[400,369],[126,129],[233,112],[412,343],[458,459],[63,46],[135,214],[421,428],[86,178],[449,346],[301,368],[137,116],[450,347],[237,239],[83,181],[170,149],[243,133],[384,258],[370,94],[208,32],[40,39],[155,26],[207,216],[213,147],[453,357],[11,12],[71,63],[290,250],[128,188],[409,287],[268,311],[334,293],[440,274],[44,45],[98,165],[304,270],[22,26],[455,439],[74,73],[66,69],[31,111],[131,198],[184,61],[28,222],[410,287],[436,425],[409,408],[223,52],[428,421],[376,411],[141,19],[144,24],[123,50],[142,100],[442,441],[421,418],[448,255],[138,215],[443,442],[62,76],[355,329],[375,307],[227,143],[20,79],[39,92],[24,229],[250,392],[219,59],[36,203],[223,29],[209,131],[328,460],[206,205],[347,330],[306,292],[2,326],[184,74],[457,461],[228,229],[368,389],[239,238],[85,180],[137,227],[171,140],[210,211],[138,192],[77,96],[458,462],[344,440],[11,267],[242,20],[126,217],[243,244],[324,318],[211,32],[55,193],[395,378],[202,212],[360,420],[325,319],[457,438],[40,186],[276,283],[294,331],[242,141],[187,205],[396,199],[268,13],[292,407],[298,301],[404,319],[9,55],[370,326],[68,104],[281,248],[230,23],[74,184],[320,325],[141,94],[60,20],[97,167],[104,63],[283,443],[69,105],[300,383],[48,131],[401,435],[74,40],[258,386],[86,14],[364,367],[432,422],[424,418],[177,132],[282,334],[329,266],[394,395],[372,264],[430,434],[117,123],[88,96],[180,179],[406,405],[45,134],[53,223],[91,106],[271,302],[283,276],[76,62],[236,51],[96,77],[8,193],[247,246],[368,356],[100,47],[279,278],[452,349],[379,365],[38,72],[399,343],[257,259],[377,175],[249,255],[354,457],[239,241],[312,311],[150,169],[157,28],[182,201],[19,94],[39,72],[4,51],[97,242],[290,328],[336,295],[194,211],[293,333],[340,265],[25,110],[291,409],[445,467],[366,323],[46,53],[278,439],[65,66],[430,424],[68,71],[5,51],[30,224],[186,212],[138,172],[98,99],[85,16],[431,424],[244,189],[290,305],[454,264],[373,339],[240,75],[445,444],[112,155],[392,438],[135,138],[216,212],[122,168],[26,231],[129,64],[446,265],[203,129],[143,227],[457,274],[220,218],[18,83],[357,452],[277,343],[270,304],[261,255],[41,72],[393,2],[231,232],[16,15],[261,340],[448,346],[381,256],[467,445],[393,267],[17,16],[262,421],[296,334],[49,48],[297,299],[182,83],[227,234],[201,182],[374,253],[27,29],[403,316],[148,175],[213,192],[219,235],[63,104],[104,105],[256,382],[128,233],[302,269],[293,300],[59,219],[465,412],[423,266],[260,388],[307,320],[113,226],[51,134],[446,255],[47,100],[147,187],[460,455],[151,337],[165,92],[263,255],[182,181],[442,257],[389,251],[60,75],[57,186],[258,441],[413,464],[339,249],[131,220],[376,433],[235,48],[112,243],[312,268],[84,181],[238,239],[102,49],[456,281],[40,74],[352,340],[299,334],[31,25],[212,186],[271,272],[425,330],[51,3],[303,304],[314,313],[254,448],[360,429],[316,14],[180,90],[233,245],[295,336],[336,337],[101,205],[28,221],[315,314],[341,452],[67,69],[318,325],[144,23],[337,338],[348,347],[275,363],[147,177],[181,90],[366,401],[218,237],[63,71],[338,10],[402,403],[375,306],[72,39],[24,228],[292,308],[403,404],[61,146],[369,262],[395,400],[165,203],[430,394],[75,166],[110,7],[281,5],[207,205],[112,233],[198,236],[227,34],[458,461],[129,142],[334,282],[201,18],[33,25],[166,60],[251,284],[226,111],[169,214],[325,318],[450,349],[40,185]],
+  oval: [[176,149],[297,332],[150,136],[109,10],[356,454],[58,132],[152,148],[361,288],[162,21],[251,389],[132,93],[10,338],[389,356],[284,251],[400,377],[136,172],[377,152],[323,361],[54,103],[21,54],[172,58],[67,109],[454,323],[365,379],[379,378],[148,176],[93,234],[332,284],[397,365],[338,297],[149,150],[288,397],[234,127],[103,67],[378,400],[127,162]],
+  leye: [[374,380],[390,373],[249,390],[385,384],[373,374],[263,466],[387,386],[381,382],[384,398],[466,388],[386,385],[388,387],[263,249],[380,381],[398,362],[382,362]],
+  reye: [[154,155],[33,7],[246,161],[159,158],[144,145],[173,133],[158,157],[163,144],[153,154],[7,163],[161,160],[157,173],[33,246],[160,159],[145,153],[155,133]],
+  lbrow: [[334,296],[276,283],[293,334],[295,285],[296,336],[282,295],[283,282],[300,293]],
+  rbrow: [[46,53],[66,107],[52,65],[53,52],[63,105],[70,63],[65,55],[105,66]],
+  lips: [[270,409],[317,402],[81,82],[91,181],[37,0],[84,17],[269,270],[321,375],[318,324],[312,311],[415,308],[17,314],[61,146],[78,95],[0,267],[82,13],[314,405],[178,87],[267,269],[61,185],[14,317],[88,178],[185,40],[405,321],[13,312],[324,308],[409,291],[146,91],[87,14],[78,191],[95,88],[311,310],[39,37],[40,39],[402,318],[191,80],[80,81],[310,415],[181,84],[375,291]],
+  nose: [[294,278],[5,4],[220,115],[344,440],[45,220],[197,195],[4,45],[19,94],[6,197],[98,97],[168,6],[94,2],[195,5],[64,98],[275,4],[326,327],[278,344],[440,275],[4,1],[327,294],[115,48],[48,64],[1,19],[2,326],[97,2]],
+  liris: [[476,477],[475,476],[477,474],[474,475]],
+  riris: [[469,470],[472,469],[471,472],[470,471]],
+};
+
+// ════════════════════════════════════════════════════════
+//  CONFIG & STATE
+// ════════════════════════════════════════════════════════
+const MODEL_DIR  = './models';
+const WASM_DIR   = './node_modules/@mediapipe/tasks-vision/wasm';
+const WEIGHTS    = './weights';
+const WEIGHTS_CDN = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights';
+const EMO_C = {neutral:'#8e8e93',happy:'#30d158',sad:'#5ac8fa',angry:'#ff453a',surprised:'#ff9f0a',fearful:'#bf5af2',disgusted:'#ff375f'};
+const BRUSH  = ['#00ff88','#00c8ff','#ff2288','#ffaa00','#ffff00'];
+const KNOWN_FACE = 14.3, KNOWN_IPD = 6.3;
+
+// Gaze thresholds — updated by calibration
+let SZ_TOP=0.27, SZ_BOT=0.73;
+const DWELL=8, GSMOOTH=14;
+
+// Calibration state
+let calibrated = false;
+let calibActive = false;
+let calibIrBuf = [];   // iris readings during active calib point
+let curGazeIR  = 0.5;  // latest raw iris ratio (used by calib)
+
+// System scroll: use Electron IPC if available, else window.scrollBy
+const sysScroll = delta => {
+  if (window.FT?.isElectron) window.FT.scroll(delta);
+  else window.scrollBy({ top: delta > 0 ? -80 : 80 });
+};
+
+let faceLM=null, handLM=null, faOk=false;
+let focal=650, frameN=0;
+let gazeBuf=[], gazeDir='CENTER', gazeDwell=0, lastScroll=0;
+let bioAge='—', bioGender='—', bioGenderC=0;
+let bioEmo={neutral:0,happy:0,sad:0,angry:0,surprised:0,fearful:0,disgusted:0};
+let bioShape='—', bioDist=0;
+let ageHist=[], blinkN=0, blinkTimer=Date.now(), blinkRate=0, lastEAR=0.3;
+let gesture='—', prevHandY=null, lastDrawPt=null;
+let brushIdx=0, brushSz=4, meshStyle=0;
+let drawCv=null, drawCtx=null;
+let distCalib=false, distCalibBuf=[];
+let fpsArr=[], lastFpsT=performance.now();
+let topmostOn=false;
+const F={scroll:true,mesh:true,hands:false,draw:false,sidebar:true};
+
+const video  = $('video');
+const canvas = $('cv');
+const ctx    = canvas.getContext('2d');
+const vp     = $('viewport');
+
+function resizeCv(){
+  canvas.width=vp.clientWidth; canvas.height=vp.clientHeight;
+  if(drawCv){drawCv.width=canvas.width;drawCv.height=canvas.height;}
+}
+new ResizeObserver(resizeCv).observe(vp);
+resizeCv();
+
+// ── Coordinate transform (object-fit:cover + mirror) ────────────────────────
+function getT(){
+  const W=canvas.width,H=canvas.height;
+  const vW=video.videoWidth||1280,vH=video.videoHeight||720;
+  const sc=Math.max(W/vW,H/vH);
+  const rW=vW*sc,rH=vH*sc;
+  const ox=(W-rW)/2,oy=(H-rH)/2;
+  return { x:lx=>ox+(1-lx)*rW, y:ly=>oy+ly*rH };
+}
+
+// ════════════════════════════════════════════════════════
+//  LOADING
+// ════════════════════════════════════════════════════════
+function ldStep(pct,msg,id,st){
+  $('ld-bar').style.width=pct+'%';
+  if(msg)$('ld-msg').textContent=msg;
+  if(!id)return;
+  const el=$(id); el.className='ls '+(st||'done');
+  el.querySelector('.ls-i').textContent=st==='err'?'✗':st==='act'?'◉':'✓';
+}
+
+async function init(){
+  // Camera
+  ldStep(5,'Requesting camera…','ls0','act');
+  try{
+    const s=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720},facingMode:'user'}});
+    video.srcObject=s;
+    await new Promise((res,rej)=>{video.onloadedmetadata=res;setTimeout(()=>rej(new Error('timeout')),12000);});
+    await video.play();
+    ldStep(14,'Camera ready','ls0');
+    $('cam-dot').className='dot live'; $('cam-lbl').textContent='Camera live';
+  }catch(e){
+    const msg=e.name==='NotAllowedError'?'Camera denied — allow in settings and reload.':'Camera: '+e.message;
+    ldStep(5,msg,'ls0','err'); showErr(msg); return;
+  }
+
+  ldStep(16,'Loading MediaPipe…');
+  let vision;
+  try{vision=await FR.forVisionTasks(WASM_DIR);}
+  catch(e){showErr('WASM failed: '+e.message);return;}
+
+  // Face model
+  ldStep(20,'Loading face model…','ls1','act');
+  try{
+    const base={modelAssetPath:MODEL_DIR+'/face_landmarker.task',delegate:'GPU'};
+    const opts={baseOptions:base,runningMode:'VIDEO',numFaces:1,outputFaceBlendshapes:false,
+      minFaceDetectionConfidence:.45,minFacePresenceConfidence:.45,minTrackingConfidence:.45};
+    try{faceLM=await FL.createFromOptions(vision,opts);}
+    catch{base.delegate='CPU';faceLM=await FL.createFromOptions(vision,opts);}
+    ldStep(50,'Face model ready','ls1');
+  }catch(e){showErr('Face model: '+e.message);return;}
+
+  // Hand model
+  ldStep(52,'Loading hand model…','ls2','act');
+  try{
+    const base={modelAssetPath:MODEL_DIR+'/hand_landmarker.task',delegate:'GPU'};
+    const opts={baseOptions:base,runningMode:'VIDEO',numHands:1,
+      minHandDetectionConfidence:.5,minHandPresenceConfidence:.5,minTrackingConfidence:.5};
+    try{handLM=await HL.createFromOptions(vision,opts);}
+    catch{base.delegate='CPU';handLM=await HL.createFromOptions(vision,opts);}
+    ldStep(70,'Hand model ready','ls2');
+  }catch(e){ldStep(70,'Hand unavailable','ls2','err');}
+
+  // face-api
+  ldStep(72,'Loading emotion AI…','ls3','act');
+  try{
+    const loadNets = async url => Promise.all([
+      fa.nets.tinyFaceDetector.loadFromUri(url),
+      fa.nets.faceExpressionNet.loadFromUri(url),
+      fa.nets.ageGenderNet.loadFromUri(url),
+    ]);
+    try {
+      await loadNets(WEIGHTS);
+      faOk=true; ldStep(94,'Emotion AI ready (local)','ls3');
+    } catch(e1) {
+      ldStep(80,'Trying CDN fallback for emotion AI...','ls3','act');
+      try {
+        await loadNets(WEIGHTS_CDN);
+        faOk=true; ldStep(94,'Emotion AI ready (CDN)','ls3');
+      } catch(e2) {
+        ldStep(94,'Emotion AI unavailable','ls3','err');
+      }
+    }
+  }catch(e){ ldStep(94,'Emotion AI error','ls3','err'); }
+
+  // Draw canvas + emo bars
+  drawCv=document.createElement('canvas');
+  drawCv.width=canvas.width; drawCv.height=canvas.height;
+  drawCtx=drawCv.getContext('2d');
+  buildEmoBars();
+  buildCalibGrid();
+  loadCalibFromStorage();
+
+  ldStep(100,'All systems go!','ls4');
+  await sleep(700);
+  $('loading').classList.add('fade');
+
+  // Show calibration prompt if not yet calibrated
+  if(!calibrated) openCalib();
+  else requestAnimationFrame(detect);
+}
+
+// ════════════════════════════════════════════════════════
+//  CALIBRATION
+// ════════════════════════════════════════════════════════
+const CALIB_PTS=[
+  [0.1,0.1],[0.5,0.1],[0.9,0.1],
+  [0.1,0.5],[0.5,0.5],[0.9,0.5],
+  [0.1,0.9],[0.5,0.9],[0.9,0.9],
+];
+const CALIB_DWELL_MS = 1800;  // ms per point
+let calibData = [];
+
+function buildCalibGrid(){
+  const g=$('calib-grid-preview'); g.innerHTML='';
+  for(let i=0;i<9;i++){
+    const d=document.createElement('div');
+    d.className='cg-dot'; d.id='cgd-'+i; g.appendChild(d);
+  }
+}
+
+function loadCalibFromStorage(){
+  try{
+    const s=localStorage.getItem('ft_calib_v4');
+    if(!s)return;
+    const c=JSON.parse(s);
+    SZ_TOP=c.up; SZ_BOT=c.dn; calibrated=true;
+    updateCalibUI(); updateGazeTicks();
+  }catch(_){}
+}
+
+function updateCalibUI(){
+  $('calib-status').textContent = calibrated ? '🎯 Calibrated' : '⚠ Not calibrated';
+}
+
+function updateGazeTicks(){
+  $('gz-tick-up').style.left=(SZ_TOP*100).toFixed(1)+'%';
+  $('gz-tick-dn').style.left=(SZ_BOT*100).toFixed(1)+'%';
+}
+
+window.openCalib = () => {
+  $('calib-overlay').classList.add('open');
+  $('calib-intro').style.display='flex';
+  $('calib-active').classList.remove('open');
+  $('calib-result').classList.remove('open');
+  // Start detect loop if not already running (need iris data)
+  if(!detect._running){ detect._running=true; requestAnimationFrame(detect); }
+};
+
+window.closeCalib = () => {
+  $('calib-overlay').classList.remove('open');
+};
+
+window.skipCalib = () => {
+  closeCalib();
+  if(!detect._running){ detect._running=true; requestAnimationFrame(detect); }
+};
+
+window.startCalib = async () => {
+  $('calib-intro').style.display='none';
+  $('calib-result').classList.remove('open');
+  $('calib-active').classList.add('open');
+  calibActive=true;
+  calibData=[];
+
+  const dot  = $('calib-dot-wrap');
+  const ring = $('calib-ring-fill');
+  const nLbl = $('calib-n');
+  const cgDots = Array.from({length:9},(_,i)=>$('cgd-'+i));
+
+  for(let i=0;i<CALIB_PTS.length;i++){
+    const [px,py]=CALIB_PTS[i];
+    // Highlight grid preview dot
+    cgDots.forEach((d,j)=>d.classList.toggle('lit',j===i));
+    nLbl.textContent=i+1;
+
+    // Move dot
+    dot.style.left=(px*100)+'vw';
+    dot.style.top =(py*100)+'vh';
+    ring.style.strokeDashoffset='220'; // reset ring
+
+    // Settle time
+    await sleep(600);
+
+    // Record iris readings while ring fills
+    const readings=[];
+    const start=Date.now();
+    const total=CALIB_DWELL_MS;
+    while(Date.now()-start<total){
+      if(gazeBuf.length>0) readings.push(curGazeIR);
+      // Animate ring
+      const prog=Math.min((Date.now()-start)/total,1);
+      ring.style.strokeDashoffset=(220*(1-prog)).toFixed(1);
+      await sleep(30);
+    }
+    ring.style.strokeDashoffset='0';
+
+    const avg=readings.length>0 ? readings.reduce((a,b)=>a+b)/readings.length : 0.5;
+    calibData.push({px,py,ir:avg});
+    await sleep(100);
+  }
+
+  calibActive=false;
+  $('calib-active').classList.remove('open');
+  computeCalib();
+};
+
+function computeCalib(){
+  // Group by screen Y row
+  const top    = calibData.filter(d=>d.py<0.3).map(d=>d.ir);
+  const middle = calibData.filter(d=>d.py>0.3&&d.py<0.7).map(d=>d.ir);
+  const bottom = calibData.filter(d=>d.py>0.7).map(d=>d.ir);
+  const avg=a=>a.length?a.reduce((x,y)=>x+y)/a.length:null;
+
+  const irTop=avg(top), irMid=avg(middle), irBot=avg(bottom);
+  if(irTop===null||irMid===null||irBot===null){
+    toast('Calibration failed — no iris data detected. Ensure face is visible.'); return;
+  }
+
+  // Thresholds: 55% of the way from extreme to mid
+  SZ_TOP = irTop  + (irMid-irTop)  * 0.55;
+  SZ_BOT = irBot  - (irBot-irMid)  * 0.55;
+
+  // Clamp
+  SZ_TOP = Math.min(Math.max(SZ_TOP,0.15),0.42);
+  SZ_BOT = Math.max(Math.min(SZ_BOT,0.85),0.58);
+
+  calibrated=true;
+  localStorage.setItem('ft_calib_v4',JSON.stringify({up:SZ_TOP,dn:SZ_BOT,top:irTop,mid:irMid,bot:irBot,date:Date.now()}));
+  updateCalibUI(); updateGazeTicks();
+
+  // Show result
+  $('calib-result').classList.add('open');
+  $('calib-stats').innerHTML=
+    `Up threshold:    ${SZ_TOP.toFixed(3)}\n`+
+    `Down threshold:  ${SZ_BOT.toFixed(3)}\n`+
+    `Top iris avg:    ${irTop.toFixed(3)}\n`+
+    `Mid iris avg:    ${irMid.toFixed(3)}\n`+
+    `Bot iris avg:    ${irBot.toFixed(3)}`;
+}
+
+// ════════════════════════════════════════════════════════
+//  DETECT LOOP
+// ════════════════════════════════════════════════════════
+async function detect(){
+  detect._running=true;
+  if(video.readyState<2){requestAnimationFrame(detect);return;}
+
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  const now=performance.now();
+
+  // FPS
+  fpsArr.push(1000/Math.max(now-lastFpsT,1)); lastFpsT=now;
+  if(fpsArr.length>30)fpsArr.shift();
+  $('bb-fps').textContent=Math.round(fpsArr.reduce((a,b)=>a+b)/fpsArr.length)+' FPS';
+
+  const T=getT();
+
+  // Face landmarks
+  const fRes=faceLM.detectForVideo(video,now);
+  const faceOk=fRes.faceLandmarks?.length>0;
+  setFaceDot(faceOk);
+
+  if(faceOk){
+    const lm=fRes.faceLandmarks[0].map(p=>({x:p.x,y:p.y,z:p.z}));
+    const n=lm.length;
+
+    // Bounding box
+    let xMn=1,xMx=0,yMn=1,yMx=0;
+    for(const p of lm){if(p.x<xMn)xMn=p.x;if(p.x>xMx)xMx=p.x;if(p.y<yMn)yMn=p.y;if(p.y>yMx)yMx=p.y;}
+    const bx1=T.x(xMx),by1=T.y(yMn),bx2=T.x(xMn),by2=T.y(yMx);
+    const fWpx=Math.abs(bx2-bx1);
+
+    // Distance
+    const d1=fWpx>2?(KNOWN_FACE*focal)/fWpx:0;
+    let d2=0;
+    if(n>473){const ipx=Math.hypot((lm[468].x-lm[473].x)*W,(lm[468].y-lm[473].y)*H);if(ipx>1)d2=(KNOWN_IPD*focal)/ipx;}
+    bioDist=d2>0?(d1+d2)/2:d1;
+
+    // Distance calibration
+    if(distCalib){
+      distCalibBuf.push(fWpx);
+      $('dist-calib-n').textContent=Math.max(0,90-distCalibBuf.length);
+      if(distCalibBuf.length>=90){
+        focal=distCalibBuf.reduce((a,b)=>a+b)/distCalibBuf.length*60/KNOWN_FACE;
+        distCalib=false; distCalibBuf=[];
+        $('calib-bar').style.display='none';
+        toast('Distance calibrated — focal '+focal.toFixed(0)+' px');
+      }
+    }
+
+    bioShape=calcShape(lm,W,H);
+
+    // EAR + blink
+    const lEAR=earV(lm,159,145,33,133,W,H);
+    const rEAR=earV(lm,386,374,362,263,W,H);
+    const avgEAR=(lEAR+rEAR)/2;
+    if(lastEAR>0.22&&avgEAR<0.15)blinkN++;
+    lastEAR=avgEAR;
+    if(Date.now()-blinkTimer>60000){blinkRate=blinkN;blinkN=0;blinkTimer=Date.now();}
+
+    // Gaze
+    if(n>473){
+      const lR=irisR(lm,159,145,468);
+      const rR=irisR(lm,386,374,473);
+      const raw=(lR+rR)/2;
+      curGazeIR=raw;  // used by calibration
+      gazeBuf.push(raw); if(gazeBuf.length>GSMOOTH)gazeBuf.shift();
+      const sm=gazeBuf.reduce((a,b)=>a+b)/gazeBuf.length;
+
+      // Horizontal gaze (for orb + X display)
+      const gx=(lm[468].x+lm[473].x)/2;
+
+      let nd;
+      if(sm<SZ_TOP)nd='UP';
+      else if(sm>SZ_BOT)nd='DOWN';
+      else if(gazeDir!=='CENTER'&&Math.abs(sm-0.5)>0.10)nd=gazeDir;
+      else nd='CENTER';
+
+      if(nd!=='CENTER'){gazeDir=nd;gazeDwell=Math.min(gazeDwell+1,80);}
+      else{gazeDir='CENTER';gazeDwell=Math.max(gazeDwell-2,0);}
+
+      // Scroll — system-wide via Electron IPC
+      if(F.scroll&&gazeDwell>=DWELL&&!calibActive){
+        const t=Date.now(),cd=Math.max(30,110-gazeDwell*1.5);
+        if(t-lastScroll>cd){
+          const sp=Math.min(3*(1+(gazeDwell-DWELL)*.06),7.5);
+          sysScroll(gazeDir==='UP'?sp:-sp);
+          lastScroll=t;
+        }
+      }
+
+      updateGazeUI(sm,gazeDir,gazeDwell>=DWELL);
+      const MX=26;
+      $('orb-dot').style.transform=`translate(${((gx-.5)*2*MX).toFixed(1)}px,${((sm-.5)*2*MX).toFixed(1)}px)`;
+      $('s-gx').textContent=(gx*100).toFixed(0)+'%';
+      $('s-gy').textContent=(sm*100).toFixed(0)+'%';
+    }
+
+    if(faOk&&frameN%20===0)runFaceApi();
+
+    if(F.mesh)drawMesh(lm,T,n);
+    drawCornerBox(bx1,by1,bx2,by2,gcol());
+    const cx=(bx1+bx2)/2;
+    drawBadge(`${bioGender}  ${bioAge}yr`,cx,by1-34,gcol());
+    drawBadge(topEmo(),cx,by1-10,'#5ac8fa');
+    drawBadge(`${bioDist.toFixed(1)} cm`,cx,by2+24,'rgba(255,255,255,.35)');
+    drawBadge(bioShape,bx2+8,(by1+by2)/2,'#bf5af2');
+
+    // Scan line
+    if(!detect._sy)detect._sy=0;
+    const fh=Math.max(by2-by1,1); detect._sy=(detect._sy+2)%fh;
+    ctx.save(); ctx.globalAlpha=.45; ctx.strokeStyle='#30d158'; ctx.lineWidth=1;
+    ctx.shadowColor='#30d158'; ctx.shadowBlur=6;
+    ctx.beginPath(); ctx.moveTo(bx1,by1+detect._sy); ctx.lineTo(bx2,by1+detect._sy); ctx.stroke();
+    ctx.restore();
+
+    $('s-dist').textContent=bioDist>0?bioDist.toFixed(1)+' cm':'—';
+    $('s-shape').textContent=bioShape;
+    $('s-lear').textContent=lEAR.toFixed(3);
+    $('s-rear').textContent=rEAR.toFixed(3);
+    $('s-blink').textContent=blinkRate+' /min';
+
+  }else{
+    gazeBuf.length=0; gazeDir='CENTER'; gazeDwell=0;
+    updateGazeUI(0.5,'CENTER',false);
+  }
+
+  // Hand
+  if(F.hands&&handLM){
+    const hRes=handLM.detectForVideo(video,now);
+    if(hRes.landmarks?.length){
+      const hlm=hRes.landmarks[0].map(p=>({x:p.x,y:p.y,z:p.z}));
+      const ht=hRes.handedness?.[0]?.[0]?.categoryName||'Right';
+      drawHand(hlm,T); gesture=classGesture(hlm,ht);
+      doHandAction(hlm,T);
+      $('s-gesture').textContent=gesture;
+    }else gesture='—';
+  }
+
+  if(F.draw&&drawCv)ctx.drawImage(drawCv,0,0);
+  frameN++;
+  requestAnimationFrame(detect);
+}
+
+// ════════════════════════════════════════════════════════
+//  ANALYSIS
+// ════════════════════════════════════════════════════════
+function irisR(lm,tI,bI,iI){const ty=lm[tI].y,by=lm[bI].y,iy=lm[iI].y;const sp=by-ty;return sp>.001?(iy-ty)/sp:.5;}
+function earV(lm,t,b,l,r,W,H){const v=Math.hypot((lm[t].x-lm[b].x)*W,(lm[t].y-lm[b].y)*H);const h=Math.hypot((lm[l].x-lm[r].x)*W,(lm[l].y-lm[r].y)*H);return h>2?v/h:.3;}
+function calcShape(lm,W,H){const d=(a,b)=>Math.hypot((lm[a].x-lm[b].x)*W,(lm[a].y-lm[b].y)*H);const fh=d(10,152),cw=d(234,454),jw=d(172,397),fw=d(54,284);if(cw<1)return'—';const rh=fh/cw,rj=jw/cw,rf=fw/cw;if(rh>1.55)return'Oblong';if(rh>1.35&&rj<.72)return'Heart';if(rh>1.25&&rf>.85)return'Oval';if(rh<1.05&&rj>.82)return'Round';if(rj>.82&&Math.abs(rf-rj)<.08)return'Square';if(rf<.78&&rj<.78)return'Diamond';return'Oval';}
+function gcol(){return gazeDir==='UP'?'#30d158':gazeDir==='DOWN'?'#5ac8fa':'#0a84ff';}
+function topEmo(){let k='neutral',v=0;for(const[ek,ev]of Object.entries(bioEmo))if(ev>v){v=ev;k=ek;}return k.charAt(0).toUpperCase()+k.slice(1);}
+
+let _faRun=false;
+async function runFaceApi(){
+  if(_faRun)return; _faRun=true;
+  try{
+    const det=await fa.detectSingleFace(video,new fa.TinyFaceDetectorOptions({inputSize:320,scoreThreshold:.38})).withFaceExpressions().withAgeAndGender();
+    if(det){
+      ageHist.push(det.age); if(ageHist.length>5)ageHist.shift();
+      bioAge=String(Math.round(ageHist.reduce((a,b)=>a+b)/ageHist.length));
+      bioGender=det.gender.charAt(0).toUpperCase()+det.gender.slice(1);
+      bioGenderC=det.genderProbability;
+      for(const k of Object.keys(det.expressions))bioEmo[k]=(bioEmo[k]||0)*.6+det.expressions[k]*.4;
+      $('s-age').textContent=bioAge+' yr';
+      $('s-gender').textContent=bioGender+' '+Math.round(bioGenderC*100)+'%';
+      let dk='neutral',dv=0;
+      for(const[k,v]of Object.entries(bioEmo)){const eb=$('eb-'+k),ep=$('ep-'+k);if(eb)eb.style.width=(v*100).toFixed(0)+'%';if(ep)ep.textContent=(v*100).toFixed(0)+'%';if(v>dv){dv=v;dk=k;}}
+      $('s-emo-top').textContent=dk.charAt(0).toUpperCase()+dk.slice(1);
+      $('s-emo-top').style.color=EMO_C[dk]||'var(--teal)';
+    }
+  }catch(_){}finally{_faRun=false;}
+}
+
+// ════════════════════════════════════════════════════════
+//  MESH DRAWING
+// ════════════════════════════════════════════════════════
+function drawSeg(lm,conn,T,col,alpha,lw,n,glow){
+  ctx.save(); ctx.globalAlpha=alpha; ctx.strokeStyle=col; ctx.lineWidth=lw; ctx.lineCap='round';
+  if(glow){ctx.shadowColor=col;ctx.shadowBlur=glow;}
+  ctx.beginPath();
+  for(const[a,b]of conn){if(a>=n||b>=n)continue;ctx.moveTo(T.x(lm[a].x),T.y(lm[a].y));ctx.lineTo(T.x(lm[b].x),T.y(lm[b].y));}
+  ctx.stroke(); ctx.restore();
+}
+
+function drawMesh(lm,T,n){
+  if(meshStyle===0&&MESH.tess.length)drawSeg(lm,MESH.tess,T,'#1a3d20',.55,.5,n,0);
+  if(meshStyle<2){
+    drawSeg(lm,MESH.oval, T,'#20c090',.92,1.4,n,3);
+    drawSeg(lm,MESH.leye, T,'#d4a012',.95,1.4,n,3);
+    drawSeg(lm,MESH.reye, T,'#d4a012',.95,1.4,n,3);
+    drawSeg(lm,MESH.lbrow,T,'#9030c8',.90,1.3,n,2);
+    drawSeg(lm,MESH.rbrow,T,'#9030c8',.90,1.3,n,2);
+    drawSeg(lm,MESH.lips, T,'#cc2828',.92,1.4,n,3);
+    drawSeg(lm,MESH.nose, T,'#1888aa',.88,1.2,n,2);
+  }
+  drawSeg(lm,MESH.liris,T,'#00d8ff',1,1.6,n,6);
+  drawSeg(lm,MESH.riris,T,'#00d8ff',1,1.6,n,6);
+  for(const idx of[468,473]){
+    if(idx>=n)continue;
+    const ix=T.x(lm[idx].x),iy=T.y(lm[idx].y);
+    ctx.save(); ctx.strokeStyle='#00d8ff'; ctx.lineWidth=1.2;
+    ctx.shadowColor='#00d8ff'; ctx.shadowBlur=8;
+    ctx.beginPath(); ctx.arc(ix,iy,10,0,Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(ix,iy,4,0,Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ix-18,iy); ctx.lineTo(ix+18,iy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ix,iy-18); ctx.lineTo(ix,iy+18); ctx.stroke();
+    ctx.fillStyle='#00d8ff'; ctx.beginPath(); ctx.arc(ix,iy,3,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+  if(n>473){ctx.save();ctx.strokeStyle='rgba(80,80,220,.45)';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(T.x(lm[468].x),T.y(lm[468].y));ctx.lineTo(T.x(lm[473].x),T.y(lm[473].y));ctx.stroke();ctx.setLineDash([]);ctx.restore();}
+  if(meshStyle===2){const K=[1,4,6,10,33,54,93,103,109,127,133,152,159,172,234,263,284,323,356,362,389,397,454];ctx.fillStyle='rgba(130,220,130,.85)';for(const i of K){if(i>=n)continue;ctx.beginPath();ctx.arc(T.x(lm[i].x),T.y(lm[i].y),2.5,0,Math.PI*2);ctx.fill();}}
+}
+
+// ════════════════════════════════════════════════════════
+//  HAND
+// ════════════════════════════════════════════════════════
+const HC=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+const FC=['#ff453a','#ff9f0a','#30d158','#5ac8fa','#bf5af2'];
+const FI=[[1,2,3,4],[5,6,7,8],[9,10,11,12],[13,14,15,16],[17,18,19,20]];
+
+function drawHand(lm,T){
+  ctx.save(); ctx.strokeStyle='#5ac8fa'; ctx.lineWidth=2.5; ctx.lineCap='round';
+  ctx.shadowColor='#5ac8fa'; ctx.shadowBlur=8; ctx.globalAlpha=.88; ctx.beginPath();
+  for(const[a,b]of HC){ctx.moveTo(T.x(lm[a].x),T.y(lm[a].y));ctx.lineTo(T.x(lm[b].x),T.y(lm[b].y));}
+  ctx.stroke();
+  for(let f=0;f<5;f++){ctx.strokeStyle=FC[f];ctx.lineWidth=2;ctx.globalAlpha=.65;ctx.beginPath();const fi=FI[f];for(let i=0;i<fi.length-1;i++){ctx.moveTo(T.x(lm[fi[i]].x),T.y(lm[fi[i]].y));ctx.lineTo(T.x(lm[fi[i+1]].x),T.y(lm[fi[i+1]].y));}ctx.stroke();}
+  for(let i=0;i<21;i++){const px=T.x(lm[i].x),py=T.y(lm[i].y),isTip=[4,8,12,16,20].includes(i);ctx.globalAlpha=1;ctx.fillStyle=isTip?'#fff':i===0?'#5ac8fa':'rgba(90,200,250,.7)';ctx.shadowColor=isTip?'#fff':'#5ac8fa';ctx.shadowBlur=isTip?10:4;ctx.beginPath();ctx.arc(px,py,i===0?7:isTip?6:4,0,Math.PI*2);ctx.fill();}
+  const tx=T.x(lm[8].x),ty=T.y(lm[8].y); ctx.restore();
+  drawBadge(gesture,tx,ty-16,'#5ac8fa');
+}
+
+function classGesture(lm,ht){
+  const tips=[8,12,16,20],pips=[6,10,14,18];
+  const ext=tips.map((t,i)=>lm[t].y<lm[pips[i]].y);
+  const thumb=ht==='Right'?lm[4].x<lm[3].x:lm[4].x>lm[3].x;
+  const n=ext.filter(Boolean).length+(thumb?1:0);
+  const pd=Math.hypot(lm[4].x-lm[8].x,lm[4].y-lm[8].y);
+  if(pd<0.055)return'Pinch';
+  if(n>=4)return'Open Palm';
+  if(ext[0]&&!ext[1]&&!ext[2]&&!ext[3])return'Pointing';
+  if(ext[0]&&ext[1]&&!ext[2]&&!ext[3])return'Peace / V';
+  if(n===0)return'Fist';
+  if(thumb&&n===1)return'Thumbs Up';
+  return`(${n} fingers)`;
+}
+
+function doHandAction(lm,T){
+  const tx=T.x(lm[8].x),ty=T.y(lm[8].y);
+  if(F.draw&&drawCv){
+    if(gesture==='Pinch'){drawCtx.strokeStyle=BRUSH[brushIdx];drawCtx.lineWidth=brushSz*2;drawCtx.lineCap='round';drawCtx.lineJoin='round';if(lastDrawPt){drawCtx.beginPath();drawCtx.moveTo(lastDrawPt[0],lastDrawPt[1]);drawCtx.lineTo(tx,ty);drawCtx.stroke();}lastDrawPt=[tx,ty];}
+    else lastDrawPt=null;
+  }
+  if(gesture==='Pointing'||gesture==='Peace / V'){const cy=lm[9].y;if(prevHandY!==null&&Math.abs(cy-prevHandY)>.007)window.scrollBy({top:(cy-prevHandY)*420});prevHandY=cy;}
+  else prevHandY=null;
+}
+
+// ════════════════════════════════════════════════════════
+//  DRAW HELPERS
+// ════════════════════════════════════════════════════════
+function drawCornerBox(x1,y1,x2,y2,col,L=26){ctx.save();ctx.strokeStyle=col;ctx.lineWidth=2.2;ctx.shadowColor=col;ctx.shadowBlur=12;for(const[px,py,dx,dy]of[[x1,y1,1,1],[x2,y1,-1,1],[x2,y2,-1,-1],[x1,y2,1,-1]]){ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px+dx*L,py);ctx.stroke();ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px,py+dy*L);ctx.stroke();}ctx.restore();}
+function drawBadge(text,cx,cy,col){ctx.save();ctx.font='bold 10px "JetBrains Mono",monospace';const tw=ctx.measureText(text).width,pw=7,ph=4,bw=tw+pw*2,bh=16+ph*2;ctx.fillStyle='rgba(6,6,16,.86)';ctx.strokeStyle=col;ctx.lineWidth=.9;rrect(cx-bw/2,cy-bh,bw,bh,4);ctx.fill();ctx.stroke();ctx.fillStyle=col;ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.fillText(text,cx,cy-ph);ctx.restore();}
+function rrect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.closePath();}
+
+// ════════════════════════════════════════════════════════
+//  UI
+// ════════════════════════════════════════════════════════
+function setFaceDot(ok){const c='dot '+(ok?'live':'off');$('face-dot').className=c;$('face-lbl').textContent=ok?'Face detected':'No face';$('bb-fdot').className=c;$('bb-ftxt').textContent=ok?'Face detected':'No face';}
+function updateGazeUI(sm,dir,active){const col=dir==='UP'?'#30d158':dir==='DOWN'?'#5ac8fa':'rgba(255,255,255,.24)';$('gz-thumb').style.left=(sm*100).toFixed(1)+'%';$('gz-thumb').style.background=col;$('gz-dir').textContent=dir;$('gz-dir').style.color=col;const si=$('scroll-ind');if(F.scroll&&active&&dir!=='CENTER'){si.style.display='flex';si.style.color=col;si.textContent=(dir==='UP'?'▲ ':' ▼ ')+'Scrolling '+dir.toLowerCase();}else si.style.display='none';}
+function buildEmoBars(){const w=$('emo-bars');w.innerHTML='';for(const emo of Object.keys(EMO_C)){const r=document.createElement('div');r.className='er';r.innerHTML=`<div class="en">${emo}</div><div class="ebb"><div class="ebf" id="eb-${emo}" style="background:${EMO_C[emo]};width:0%"></div></div><div class="ep" id="ep-${emo}">0%</div>`;w.appendChild(r);}}
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+
+// ════════════════════════════════════════════════════════
+//  TOGGLES
+// ════════════════════════════════════════════════════════
+const PCLS={scroll:'g',mesh:'b',hands:'v',draw:'o'};
+window.tog=key=>{
+  if(key==='sidebar'){F.sidebar=!F.sidebar;$('sidebar').classList.toggle('off',!F.sidebar);return;}
+  F[key]=!F[key];
+  const p=$('p-'+key);if(p)p.className='pill '+(F[key]?PCLS[key]:'');
+  if(key==='hands'){$('hand-sec').style.display=F.hands?'':'none';if(!F.hands){F.draw=false;$('p-draw').className='pill';}}
+  if(key==='draw'&&F.draw&&!F.hands){F.hands=true;$('p-hands').className='pill v';$('hand-sec').style.display='';}
+  toast(key.charAt(0).toUpperCase()+key.slice(1)+' '+(F[key]?'ON':'OFF'));
+};
+
+let topmostOn2=false;
+window.togTopmost=()=>{
+  topmostOn2=!topmostOn2;
+  window.FT?.setTopmost(topmostOn2);
+  $('topmost-btn').classList.toggle('on',topmostOn2);
+  toast('Always on top '+(topmostOn2?'ON':'OFF'));
+};
+
+window.openHelp =()=>$('help-bg').classList.add('open');
+window.closeHelp=()=>$('help-bg').classList.remove('open');
+window.hpTab=(id,el)=>{document.querySelectorAll('.hp-sec').forEach(s=>s.classList.remove('on'));document.querySelectorAll('.hp-tab').forEach(t=>t.classList.remove('on'));$('hp-'+id).classList.add('on');el.classList.add('on');};
+
+// ════════════════════════════════════════════════════════
+//  KEYBOARD
+// ════════════════════════════════════════════════════════
+document.addEventListener('keydown',e=>{
+  if($('help-bg').classList.contains('open')){if(e.key==='Escape')closeHelp();return;}
+  if($('calib-overlay').classList.contains('open')&&e.key==='Escape'){closeCalib();return;}
+  switch(e.key.toLowerCase()){
+    case 's':tog('scroll');break;
+    case 'm':tog('mesh');break;
+    case 'n':meshStyle=(meshStyle+1)%3;toast('Mesh: '+['Full','Contours','Minimal'][meshStyle]);break;
+    case 't':tog('hands');break;
+    case 'd':tog('draw');break;
+    case 'x':drawCtx?.clearRect(0,0,drawCv?.width||0,drawCv?.height||0);lastDrawPt=null;toast('Canvas cleared');break;
+    case 'b':brushIdx=(brushIdx+1)%BRUSH.length;toast('Brush: '+BRUSH[brushIdx]);break;
+    case 'c':distCalib=true;distCalibBuf=[];$('calib-bar').style.display='block';toast('Stand 60 cm from camera…');break;
+    case 'g':openCalib();break;
+    case 'u':SZ_TOP=Math.min(SZ_TOP+.01,SZ_BOT-.05);updateGazeTicks();toast('Up zone: '+SZ_TOP.toFixed(3));break;
+    case 'i':SZ_TOP=Math.max(SZ_TOP-.01,.1);updateGazeTicks();toast('Up zone: '+SZ_TOP.toFixed(3));break;
+    case 'j':SZ_BOT=Math.max(SZ_BOT-.01,SZ_TOP+.05);updateGazeTicks();toast('Down zone: '+SZ_BOT.toFixed(3));break;
+    case 'k':SZ_BOT=Math.min(SZ_BOT+.01,.9);updateGazeTicks();toast('Down zone: '+SZ_BOT.toFixed(3));break;
+    case 'r':bioAge='—';bioGender='—';ageHist=[];$('s-age').textContent='—';$('s-gender').textContent='—';toast('Stats reset');break;
+    case 'p':tog('sidebar');break;
+    case 'f':document.documentElement.requestFullscreen?.();break;
+    case '?':openHelp();break;
+    case 'escape':closeHelp();break;
+    default:if(e.key>='1'&&e.key<='5'){brushSz=parseInt(e.key)*3;toast('Brush size '+brushSz);}
+  }
+});
+
+init();
+</script>
+</body>
+</html>

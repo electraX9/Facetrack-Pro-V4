@@ -1,0 +1,43 @@
+{
+  "name": "facetrack-pro",
+  "version": "4.0.0",
+  "description": "FaceTrack Pro — Biometric Vision Suite",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win --x64"
+  },
+  "build": {
+    "appId": "com.facetrack.pro",
+    "productName": "FaceTrack Pro",
+    "copyright": "FaceTrack Pro v4.0",
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "icon.ico",
+      "createDesktopShortcut": true
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "node_modules/@mediapipe/tasks-vision/**",
+      "node_modules/face-api.js/**"
+    ],
+    "extraResources": [
+      { "from": "models", "to": "models" }
+    ]
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "0.10.14",
+    "face-api.js": "0.22.2"
+  },
+  "devDependencies": {
+    "electron": "latest",
+    "electron-builder": "latest"
+  }
+}
