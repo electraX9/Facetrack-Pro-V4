@@ -79,7 +79,7 @@ The generated installer contains the full application and can be installed on an
 > [!NOTE]
 >## Important Notes
 
-*The gaze scrolling system is currently experimental and may vary depending on lighting conditions, camera quality, and user positioning.
+>*The gaze scrolling system is currently experimental and may vary depending on lighting conditions, camera quality, and user positioning.
 A calibration process is included to accurately measure user placement and improve gaze scroll efficiency and responsiveness.
 Age and gender results are AI-based predictions and may not always be 100% accurate. However, the system is designed to provide near-accurate estimations in real time.*
 
