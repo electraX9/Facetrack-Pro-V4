@@ -17,15 +17,16 @@ An advanced AI-powered computer vision application that combines real-time face 
 11. User calibration system for improved gaze tracking accuracy
     
 ## Requirements
-+Before setup, ensure the following is installed:
+Before setup, ensure the following is installed:
 
-**Node.js (latest recommended version)**
+> [!IMPORTANT]
+>Node.js (latest recommended version)
 
 ## Installation & Setup
 
 1. Clone the Repository
    
-(git clone https://github.com/electraX9/Facetrack-Pro-V4.git)
+git clone https://github.com/electraX9/Facetrack-Pro-V4.git
 
 2. Run the Setup File
 
@@ -35,11 +36,11 @@ Open the project folder and run:
 
 The setup process will automatically download and install:
 
-+*Electron*
-+*MediaPipe*
-+*Face API*
-+*Required dependencies*
-+*AI models and weights for age, gender, and emotion detection*
+*Electron*
+*MediaPipe*
+*Face API*
+*Required dependencies*
+*AI models and weights for age, gender, and emotion detection*
 
 ***First-time setup may require approximately 400MB of downloads.***
 
@@ -75,7 +76,8 @@ This will compile a complete standalone Windows installer:
 
 The generated installer contains the full application and can be installed on any Windows 10/11 computer without requiring Node.js, Python, or a browser. The setup file is fully portable and ready for distribution.
 
-## Important Notes
+> [!NOTE]
+>## Important Notes
 
 *The gaze scrolling system is currently experimental and may vary depending on lighting conditions, camera quality, and user positioning.
 A calibration process is included to accurately measure user placement and improve gaze scroll efficiency and responsiveness.
